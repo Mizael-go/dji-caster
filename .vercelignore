@@ -1,0 +1,14 @@
+node_modules
+frontend
+internal
+build
+dist
+scripts
+skills
+go.mod
+go.sum
+main.go
+app.go
+wails.json
+AGENTS.md
+README.md

@@ -1,0 +1,21 @@
+DJI Caster — paquet Debian
+==========================
+
+Installation :
+
+    sudo apt install ./dji-caster_0.1.0_amd64.deb
+
+Puis lancez « DJI Caster » depuis le menu des applications.
+
+Au premier lancement :
+  1. si la radio Bluetooth est bloquée, l'app propose de la débloquer
+     (sinon : sudo rfkill unblock bluetooth) ;
+  2. Réglages → « Installer les outils » télécharge MediaMTX et compile djictl
+     dans ~/.config/dji-caster/bin ;
+  3. onglet Appareils → Scanner → sélectionnez la caméra → saisissez le Wi-Fi.
+
+Sortie pour OBS : rtmp://<ip-locale>:1935/live/dji
+   (ou .../live/dji-h264 si la conversion H.264 est active)
+
+Prérequis : Ubuntu 22.04+ / Debian 12+, adaptateur Bluetooth, ffmpeg pour la
+conversion H.264, réseau 2,4 GHz pour la caméra.

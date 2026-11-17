@@ -1,0 +1,227 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@font-face {
+  font-family: "Sora";
+  src: url("./assets/sora.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ==========================================================================
+   Direction artistique — console de diffusion, papier & encre
+   #17150F  encre     · texte, boutons, aplats
+   #FBF9F3  papier    · fond
+   #D8FF3E  volt      · surlignage, direct
+   #4F7D00  signal    · accents lisibles sur papier
+   #6B675C  cendre    · texte secondaire
+   #D92D20  alerte    · erreurs
+   ========================================================================== */
+
+@theme {
+  --color-ink: #17150f;
+  --color-paper: #fbf9f3;
+  --color-volt: #d8ff3e;
+  --color-signal: #4f7d00;
+  --color-cendre: #6b675c;
+  --color-live: #d92d20;
+
+  --font-sans: "Sora", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-heading: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, monospace;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --radius: 0.75rem;
+
+  --background: #fbf9f3;
+  --foreground: #17150f;
+  --card: #ffffff;
+  --card-foreground: #17150f;
+  --popover: #ffffff;
+  --popover-foreground: #17150f;
+
+  --primary: #17150f;
+  --primary-foreground: #fbf9f3;
+  --secondary: #f0ede2;
+  --secondary-foreground: #17150f;
+  --muted: #f2efe6;
+  --muted-foreground: #6b675c;
+  --accent: #eeeade;
+  --accent-foreground: #17150f;
+  --destructive: #c0261c;
+  --destructive-foreground: #ffffff;
+
+  --border: #e4dfd1;
+  --input: #d8d2c2;
+  --ring: #4f7d00;
+
+  --chart-1: #17150f;
+  --chart-2: #4f7d00;
+  --chart-3: #d8ff3e;
+  --chart-4: #6b675c;
+  --chart-5: #e4dfd1;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #17150f;
+  --sidebar-primary: #17150f;
+  --sidebar-primary-foreground: #fbf9f3;
+  --sidebar-accent: #f0ede2;
+  --sidebar-accent-foreground: #17150f;
+  --sidebar-border: #e4dfd1;
+  --sidebar-ring: #4f7d00;
+
+  --success: #0f7b57;
+  --success-foreground: #ffffff;
+  --info: #1e5fa8;
+  --info-foreground: #ffffff;
+  --warning: #a86a00;
+  --warning-foreground: #ffffff;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    margin: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  ::selection {
+    background: var(--color-volt);
+    color: var(--color-ink);
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+  }
+}
+
+/* Fond de l'application : halo volt en haut, trame papier très discrète. */
+.app-shell-bg {
+  background-image:
+    radial-gradient(120% 42% at 50% -6%, rgba(216, 255, 62, 0.4), transparent 72%),
+    linear-gradient(to bottom, rgba(23, 21, 15, 0.035) 1px, transparent 1px);
+  background-color: var(--background);
+  background-size: auto, 100% 26px;
+}
+
+/* Encoches / barre gestuelle : sans effet sur un poste de bureau, correctes
+   si l'app tourne sur une machine à écran tactile. */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Petite étiquette technique. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Pastille « direct » : halo rouge qui respire. */
+.live-dot {
+  box-shadow: 0 0 0 0 rgba(217, 45, 32, 0.55);
+  animation: live-pulse 1.9s ease-out infinite;
+}
+
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(217, 45, 32, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(217, 45, 32, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(217, 45, 32, 0);
+  }
+}
+
+/* Carte posée sur le papier. */
+.card-raised {
+  box-shadow:
+    0 1px 0 rgba(23, 21, 15, 0.04),
+    0 8px 20px -16px rgba(23, 21, 15, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot {
+    animation: none;
+  }
+}
