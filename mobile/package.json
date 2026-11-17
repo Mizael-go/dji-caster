@@ -1,0 +1,19 @@
+{
+  "name": "dji-caster-relay",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Relais Android de test : publie la camera du telephone en RTMP comme une camera DJI",
+  "scripts": {
+    "android:icons": "echo 'icones : voir android/app/src/main/res (generees par Capacitor)'",
+    "android:sync": "npx cap sync android",
+    "android:apk": "npm run android:sync && ./android/gradlew -p android assembleDebug",
+    "android:docker": "./.apk-build.sh"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.10",
+    "@capacitor/core": "^7.6.10"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.6.10"
+  }
+}

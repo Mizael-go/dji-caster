@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>DJI Relay</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Zone réservée à l'aperçu : la vue native OpenGlView est dessinée par-dessus. -->
+    <section class="preview" id="preview">
+      <div class="preview-empty" id="preview-empty">
+        <p class="eyebrow">Aperçu caméra</p>
+        <p class="hint">La caméra s'affiche ici pendant la diffusion.</p>
+      </div>
+    </section>
+
+    <main class="sheet">
+      <header class="head">
+        <div>
+          <h1>DJI Relay</h1>
+          <p class="sub">Caméra du téléphone → RTMP, comme une DJI</p>
+        </div>
+        <span class="dot" id="dot" aria-hidden="true"></span>
+      </header>
+
+      <p class="status" id="status">Prêt</p>
+
+      <form id="form" autocomplete="off">
+        <label class="field">
+          <span>Serveur (IP du PC)</span>
+          <input id="host" inputmode="decimal" placeholder="192.168.1.20" />
+        </label>
+
+        <div class="row">
+          <label class="field">
+            <span>Port RTMP</span>
+            <input id="port" inputmode="numeric" value="1935" />
+          </label>
+          <label class="field">
+            <span>Chemin</span>
+            <input id="path" value="live/dji" />
+          </label>
+        </div>
+
+        <div class="row">
+          <label class="field">
+            <span>Résolution</span>
+            <select id="resolution">
+              <option value="480">480p</option>
+              <option value="720" selected>720p</option>
+              <option value="1080">1080p</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Débit</span>
+            <select id="bitrate">
+              <option value="1500">1,5 Mb/s</option>
+              <option value="2500" selected>2,5 Mb/s</option>
+              <option value="4000">4 Mb/s</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Caméra</span>
+            <select id="facing">
+              <option value="back" selected>Arrière</option>
+              <option value="front">Avant</option>
+            </select>
+          </label>
+        </div>
+
+        <p class="url" id="url">rtmp://…/live/dji</p>
+
+        <div class="actions">
+          <button type="button" id="start" class="btn primary">Démarrer</button>
+          <button type="button" id="stop" class="btn ghost" disabled>Arrêter</button>
+        </div>
+      </form>
+
+      <p class="note">
+        Le PC doit être sur le même Wi-Fi. Dans DJI Caster, le flux apparaît sur
+        <code>live/dji</code> ; la conversion H.264 n'est pas nécessaire puisque le téléphone
+        émet déjà en H.264.
+      </p>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

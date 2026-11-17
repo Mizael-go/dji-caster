@@ -1,0 +1,9 @@
+{
+  "appId": "mg.djicaster.relay",
+  "appName": "DJI Relay",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#fbf9f3"
+  }
+}
