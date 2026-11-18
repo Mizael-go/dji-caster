@@ -1,9 +1,19 @@
-DJI Caster — paquet Debian
-==========================
+DJI Caster — paquets de bureau
+==============================
 
-Installation :
+Linux (Debian / Ubuntu) :
 
-    sudo apt install ./dji-caster_0.1.0_amd64.deb
+    sudo apt install ./dji-caster_0.1.1_amd64.deb
+
+macOS (Intel + Apple Silicon) :
+
+    dézippez dji-caster-macos-universal.zip puis glissez dji-caster.app
+    dans Applications. Application non signée : premier lancement par
+    clic droit → Ouvrir (ou Réglages Système → Confidentialité et sécurité).
+
+Android — relais de test (facultatif, simule une caméra DJI) :
+
+    installez dji-relay.apk sur le téléphone, même Wi-Fi que le PC.
 
 Puis lancez « DJI Caster » depuis le menu des applications.
 
@@ -13,9 +23,14 @@ Au premier lancement :
   2. Réglages → « Installer les outils » télécharge MediaMTX et compile djictl
      dans ~/.config/dji-caster/bin ;
   3. onglet Appareils → Scanner → sélectionnez la caméra → saisissez le Wi-Fi.
+     La résolution, le débit et les fps sont appliqués à la caméra par
+     Bluetooth, rien à régler dans le menu du DJI.
 
 Sortie pour OBS : rtmp://<ip-locale>:1935/live/dji
-   (ou .../live/dji-h264 si la conversion H.264 est active)
+   (ou .../live/dji-h264 si la conversion H.264 est active — recommandé avec
+   le relais Android)
 
-Prérequis : Ubuntu 22.04+ / Debian 12+, adaptateur Bluetooth, ffmpeg pour la
-conversion H.264, réseau 2,4 GHz pour la caméra.
+Latence minimale : dans OBS, propriétés de la source média → tampon réseau 0 Mo.
+
+Prérequis : Ubuntu 22.04+ / Debian 12+ / macOS 12+, adaptateur Bluetooth,
+ffmpeg pour la conversion H.264, réseau 2,4 GHz pour la caméra.

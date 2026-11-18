@@ -82,7 +82,7 @@ func (t *Transcoder) Stop() {
 }
 
 func (t *Transcoder) supervise(ctx context.Context, output, input string) {
-	t.logf("Transcodage H.265 → H.264 activé")
+	t.logf("Republication H.264 activée (re-timestamping + transcodage)")
 	for {
 		if ctx.Err() != nil {
 			return
@@ -155,9 +155,18 @@ func transcodeArgs(input, output string) []string {
 		"-nostdin",
 		"-loglevel", "warning",
 		"-flags", "low_delay",
-		// +genpts régénère des timestamps propres : sans lui, le RTSP live
-		// produit des DTS non monotones que les lecteurs (OBS) rejettent.
+		// Les timestamps du flux source (caméra DJI ou relais Android) sont
+		// cassés : DTS égaux/répétés et audio démarrant avant la vidéo. Sans
+		// restampage, OBS gèle sur les DTS non monotones. L'horloge murale
+		// donne des timestamps monotones et recale l'A/V à l'arrivée des
+		// paquets, quel que soit le décalage initial de la source.
+		"-use_wallclock_as_timestamps", "1",
+		// +genpts complète les pts manquants ; avec l'horloge murale il ne
+		// dérive plus (le flux est déjà entièrement timestampé).
 		"-fflags", "+genpts",
+		// Sans framerate d'entrée forcé, genpts peut dériver sur une source
+		// mal timestampée (framerate apparent ~90 000 fps vu par x264).
+		"-r", "30",
 		// Sonder vite : moins d'échantillons analysés = premier frame plus tôt.
 		"-analyzeduration", "1000000",
 		"-probesize", "1000000",
@@ -184,7 +193,14 @@ func transcodeArgs(input, output string) []string {
 		"-c:a", "aac",
 		"-b:a", "128k",
 		"-ar", "44100",
-		"-af", "aresample=async=1:first_pts=0",
+		// async=1 rattrape les trous/chevauchements de l'audio source en
+		// insérant du silence ou en supprimant des échantillons. Sans
+		// first_pts=0 : avec l'horloge murale, forcer l'audio à 0 pendant que
+		// la vidéo part sur l'horloge système crée un décalage A/V énorme.
+		"-af", "aresample=async=1",
+		// Écriture immédiate des paquets : sans ça, le muxer FLV peut garder
+		// une vidéo en tampon, ce qui ajoute de la latence côté OBS.
+		"-flush_packets", "1",
 		"-f", "flv",
 		output,
 	}

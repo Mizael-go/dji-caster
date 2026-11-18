@@ -89,6 +89,10 @@ h1 {
   background: var(--alert);
 }
 
+.dot.warn {
+  background: var(--warn, #d9a406);
+}
+
 .status {
   margin: 14px 0 12px;
   padding: 8px 10px;

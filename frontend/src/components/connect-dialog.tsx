@@ -51,6 +51,9 @@ export function ConnectDialog({
   const [showPsk, setShowPsk] = useState(false)
   const [error, setError] = useState("")
   const [savedNotice, setSavedNotice] = useState("")
+  const [resolution, setResolution] = useState<"480p" | "720p" | "1080p">("1080p")
+  const [bitrate, setBitrate] = useState("6000")
+  const [fps, setFps] = useState<"25" | "30">("30")
 
   const saved = snapshot.settings.networks ?? []
   const primary = saved[0]
@@ -75,6 +78,9 @@ export function ConnectDialog({
     if (!open) return
     const net = saved[0]
     reset({ ssid: net?.ssid || detected, psk: net?.psk || "" })
+    setResolution(snapshot.settings.streamResolution || "1080p")
+    setBitrate(String(snapshot.settings.streamBitrate || 6000))
+    setFps(String(snapshot.settings.streamFps || 30) as "25" | "30")
     setError("")
     setSavedNotice("")
     setShowPsk(false)
@@ -121,6 +127,9 @@ export function ConnectDialog({
         name: device.name,
         ssid: values.ssid.trim(),
         psk: values.psk,
+        resolution,
+        bitrate: Number(bitrate),
+        fps: Number(fps) as 25 | 30,
       })
       void queryClient.invalidateQueries({ queryKey: ["snapshot"] })
       onOpenChange(false)
@@ -240,6 +249,46 @@ export function ConnectDialog({
             </div>
             <p className="text-[10px] leading-snug text-muted-foreground">
               Vide = réseau ouvert. La caméra exige un Wi-Fi 2,4 GHz (WPA2).
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="eyebrow block">Encodeur de la caméra</Label>
+            <div className="grid grid-cols-[1.1fr_1fr_0.8fr] gap-2">
+              <Select value={resolution} onValueChange={(v) => setResolution(v as "480p" | "720p" | "1080p")}>
+                <SelectTrigger className="bg-white" aria-label="Résolution">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1080p">1080p</SelectItem>
+                  <SelectItem value="720p">720p</SelectItem>
+                  <SelectItem value="480p">480p</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={bitrate} onValueChange={setBitrate}>
+                <SelectTrigger className="bg-white" aria-label="Débit">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="4000">4 Mb/s</SelectItem>
+                  <SelectItem value="6000">6 Mb/s</SelectItem>
+                  <SelectItem value="8000">8 Mb/s</SelectItem>
+                  <SelectItem value="12000">12 Mb/s</SelectItem>
+                  <SelectItem value="20000">20 Mb/s</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={fps} onValueChange={(v) => setFps(v as "25" | "30")}>
+                <SelectTrigger className="bg-white" aria-label="Images par seconde">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30">30 fps</SelectItem>
+                  <SelectItem value="25">25 fps</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-[10px] leading-snug text-muted-foreground">
+              Appliqués à distance par Bluetooth : rien à régler dans le menu du DJI.
             </p>
           </div>
 

@@ -21,9 +21,16 @@ Elle sert à tester le logiciel sans matériel DJI.
 ## Utilisation
 
 1. Sur le PC : lancer DJI Caster, démarrer le serveur MediaMTX (port 1935).
-2. Sur le téléphone : même Wi-Fi que le PC, ouvrir DJI Relay, saisir l'IP du PC.
+2. Sur le téléphone : même Wi-Fi que le PC, ouvrir DJI Relay, saisir l'IP du PC
+   et garder le chemin source `live/dji`.
 3. « Démarrer » → le chemin `live/dji` passe à *prêt* dans l'onglet Diffusion.
-4. Laisser la conversion H.264 **désactivée** : le téléphone émet déjà du H.264.
+4. Dans DJI Caster, l'URL de source affichée est celle à saisir sur le téléphone.
+   `live/dji-h264` est une sortie réservée à FFmpeg lorsque la conversion est
+   activée ; ne configurez pas le relais mobile sur cette sortie.
+5. Pour le relais Android, activez « Convertir en H.264 » dans DJI Caster afin
+   de régénérer les timestamps du flux, puis utilisez dans OBS l'URL affichée
+   par DJI Caster, qui se termine par `live/dji-h264`. La lecture directe de
+   `live/dji` peut retarder ou figer l'image avec les timestamps RootEncoder.
 
 ## Build
 

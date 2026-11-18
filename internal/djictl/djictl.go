@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -37,8 +38,12 @@ func (r *Runner) Err() string {
 // Args mirrors:
 //
 //	djictl --filter-device-addr <MAC> ble connect-wifi-and-start-streaming \
-//	  --wifi-ssid <SSID> --wifi-psk <PSK> --rtmp-url <URL>
-func Args(addr, ssid, psk, rtmpURL string) []string {
+//	  --wifi-ssid <SSID> --wifi-psk <PSK> --rtmp-url <URL> \
+//	  --resolution <480p|720p|1080p> --bitrate-kbps <n> --fps <25|30>
+//
+// resolution, bitrateKbps et fps sont appliqués à distance à l'encodeur de la
+// caméra : rien à régler dans le menu du DJI.
+func Args(addr, ssid, psk, rtmpURL, resolution string, bitrateKbps, fps int) []string {
 	return []string{
 		"--log-level", "debug",
 		"--filter-device-addr", addr,
@@ -46,13 +51,16 @@ func Args(addr, ssid, psk, rtmpURL string) []string {
 		"--wifi-ssid", ssid,
 		"--wifi-psk", psk,
 		"--rtmp-url", rtmpURL,
+		"--resolution", resolution,
+		"--bitrate-kbps", strconv.Itoa(bitrateKbps),
+		"--fps", strconv.Itoa(fps),
 	}
 }
 
 // CommandLine is shown in the UI so the user can reproduce the call manually.
-func CommandLine(bin, addr, ssid, psk, rtmpURL string) string {
+func CommandLine(bin, addr, ssid, psk, rtmpURL, resolution string, bitrateKbps, fps int) string {
 	parts := []string{bin}
-	for _, a := range Args(addr, ssid, psk, rtmpURL) {
+	for _, a := range Args(addr, ssid, psk, rtmpURL, resolution, bitrateKbps, fps) {
 		if strings.ContainsAny(a, " \"'") {
 			parts = append(parts, "'"+a+"'")
 		} else {
@@ -64,7 +72,7 @@ func CommandLine(bin, addr, ssid, psk, rtmpURL string) string {
 
 // Run executes djictl and streams its output line by line. It blocks until the
 // command exits or ctx is cancelled.
-func (r *Runner) Run(ctx context.Context, bin, addr, ssid, psk, rtmpURL string, logf func(string)) error {
+func (r *Runner) Run(ctx context.Context, bin, addr, ssid, psk, rtmpURL, resolution string, bitrateKbps, fps int, logf func(string)) error {
 	r.mu.Lock()
 	if r.running {
 		r.mu.Unlock()
@@ -84,8 +92,8 @@ func (r *Runner) Run(ctx context.Context, bin, addr, ssid, psk, rtmpURL string, 
 		r.mu.Unlock()
 	}()
 
-	logf("$ " + CommandLine(bin, addr, ssid, psk, rtmpURL))
-	cmd := exec.CommandContext(ctx, bin, Args(addr, ssid, psk, rtmpURL)...)
+	logf("$ " + CommandLine(bin, addr, ssid, psk, rtmpURL, resolution, bitrateKbps, fps))
+	cmd := exec.CommandContext(ctx, bin, Args(addr, ssid, psk, rtmpURL, resolution, bitrateKbps, fps)...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

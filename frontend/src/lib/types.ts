@@ -15,6 +15,9 @@ export type Settings = {
   mediaMtxPath: string
   djiCtlPath: string
   ffmpegPath: string
+  streamResolution: "480p" | "720p" | "1080p"
+  streamBitrate: number
+  streamFps: 25 | 30
 }
 
 export type Device = {
@@ -114,4 +117,7 @@ export type ConnectRequest = {
   name: string
   ssid: string
   psk: string
+  resolution: "480p" | "720p" | "1080p"
+  bitrate: number
+  fps: 25 | 30
 }

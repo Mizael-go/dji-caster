@@ -25,6 +25,9 @@ export namespace config {
 	    mediaMtxPath: string;
 	    djiCtlPath: string;
 	    ffmpegPath: string;
+	    streamResolution: string;
+	    streamBitrate: number;
+	    streamFps: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -40,6 +43,9 @@ export namespace config {
 	        this.mediaMtxPath = source["mediaMtxPath"];
 	        this.djiCtlPath = source["djiCtlPath"];
 	        this.ffmpegPath = source["ffmpegPath"];
+	        this.streamResolution = source["streamResolution"];
+	        this.streamBitrate = source["streamBitrate"];
+	        this.streamFps = source["streamFps"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -70,6 +76,9 @@ export namespace main {
 	    name: string;
 	    ssid: string;
 	    psk: string;
+	    resolution: string;
+	    bitrate: number;
+	    fps: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new ConnectRequest(source);
@@ -81,6 +90,9 @@ export namespace main {
 	        this.name = source["name"];
 	        this.ssid = source["ssid"];
 	        this.psk = source["psk"];
+	        this.resolution = source["resolution"];
+	        this.bitrate = source["bitrate"];
+	        this.fps = source["fps"];
 	    }
 	}
 	export class DeviceView {

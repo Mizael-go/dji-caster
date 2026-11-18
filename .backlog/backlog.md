@@ -1,6 +1,6 @@
 # Backlog — DJI Caster
 
-Mis à jour : 2026-11-17 · prochaine revue : à la prochaine session
+Mis à jour : 2026-11-18 · prochaine revue : à la prochaine session
 Budget sprint : 200k tokens (convention `skills/backlog/SKILL.md`)
 
 ## in-progress
@@ -15,10 +15,19 @@ _(vide)_
 | [DJC-BUG-006](tasks/DJC-BUG-006.md) | Une seule session caméra (multi-caméra) | medium | 8 | 35k | BUG-004 |
 | [DJC-TASK-005](tasks/DJC-TASK-005.md) | Test d'intégration du pipeline HEVC→H.264 | medium | 5 | 25k | — |
 | [DJC-TASK-007](tasks/DJC-TASK-007.md) | URL OBS incohérente avec le port configuré | low | 1 | 4k | — |
+| [DJC-TASK-009](tasks/DJC-TASK-009.md) | Timestamps propres à la source (RootEncoder) | low | 5 | 20k | — |
 
 ## review
 
-_(vide)_
+| ID | Titre | Priorité | Points | Estimation | Dépend de |
+| --- | --- | --- | --- | --- | --- |
+| [DJC-BUG-007](tasks/DJC-BUG-007.md) | Relais Android : getSurfaceTexture null au Démarrer | high | 3 | 12k | — |
+| [DJC-BUG-008](tasks/DJC-BUG-008.md) | OBS figé / saccadé : timestamps cassés du relais | high | 3 | 12k | TASK-008 |
+| [DJC-TASK-008](tasks/DJC-TASK-008.md) | Relais : reconnexion auto + adaptation orientation | high | 3 | 14k | BUG-007 |
+| [DJC-TASK-010](tasks/DJC-TASK-010.md) | Latence résiduelle de 1 à 2 s vers OBS | high | 2 | 8k | BUG-008 |
+| [DJC-TASK-011](tasks/DJC-TASK-011.md) | Relais : aperçu caméra plein écran | high | 2 | 8k | TASK-008 |
+| [DJC-TASK-012](tasks/DJC-TASK-012.md) | Forçage DJI : URL RTMP + encodeur à distance | high | 5 | 18k | — |
+| [DJC-TASK-013](tasks/DJC-TASK-013.md) | Livraison .deb 0.1.1, paquet macOS et icône | high | 3 | 15k | TASK-011, TASK-012 |
 
 ## blocked
 
@@ -43,3 +52,4 @@ _(vide)_
 | Date | Événement |
 | --- | --- |
 | 2026-11-17 | Création du backlog, v0.1.0 livrée, relais Android compilé. |
+| 2026-11-18 | v0.1.1 bureau + APK 0.1.3 (plein écran, rotation), encodeur DJI à distance, icône unifiée, CI macOS. |

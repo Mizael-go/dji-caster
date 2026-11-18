@@ -61,14 +61,14 @@
               Une URL à coller dans OBS, et c'est en direct.
             </p>
             <div class="hero-actions">
-              <a class="btn btn--accent" href="./downloads/dji-caster_0.1.0_amd64.deb" download>
+              <a class="btn btn--accent" href="./downloads/dji-caster_0.1.1_amd64.deb" download>
                 Télécharger le .deb
               </a>
               <a class="btn btn--ghost" href="#pipeline">Comprendre le flux</a>
             </div>
             <p class="hero-note">
-              Ubuntu / Debian 64 bits · 3,8 Mo · MediaMTX inclus, téléchargé au
-              premier lancement
+              Ubuntu / Debian 64 bits · macOS universel · MediaMTX inclus,
+              téléchargé au premier lancement
             </p>
           </div>
 
@@ -255,9 +255,14 @@
             <p class="lede">
               Chaque maillon est réglé à la main pour que l'image arrive au
               moniteur sans traîner : sortie GOP d'une seconde, aucun frame B,
-              lecture du H.265 par le chemin le plus court.
+              timestamps réécrits à l'arrivée et paquets écrits sans tampon.
             </p>
             <ul class="checklist">
+              <li>
+                <strong>Timestamps à l'horloge murale.</strong> Les flux caméra
+                et relais arrivent avec des DTS répétés : ffmpeg les réécrit à
+                la réception, audio et vidéo restent calés, OBS ne fige plus.
+              </li>
               <li>
                 <strong>Keyframe toutes les secondes.</strong> OBS accroche
                 l'image tout de suite et peut couper proprement.
@@ -268,23 +273,25 @@
                 pas de réordonnancement à la sortie.
               </li>
               <li>
-                <strong>Lecture RTSP en loopback.</strong> Le H.265 de la caméra
-                n'est pas relayé aux lecteurs RTMP classiques : ffmpeg le lit
-                sur l'interface locale, sans quitter la machine.
+                <strong>Paquets écrits sans tampon.</strong>
+                <span class="mono"> -flush_packets 1</span> pousse chaque frame
+                vers MediaMTX dès qu'elle est encodée.
               </li>
               <li>
-                <strong>Processus supervisés.</strong> ffmpeg est relancé dès
-                qu'un flux réapparaît, arrêté dès qu'il disparaît : ni
-                goroutine, ni processus orphelin.
+                <strong>Côté OBS : tampon réseau à 0 Mo.</strong> Propriétés de
+                la source média → « Tampon réseau » : c'est le dernier gros
+                gisement de latence.
               </li>
             </ul>
           </div>
-          <pre class="code"><code>ffmpeg -flags low_delay -fflags +genpts \
-  -rtsp_transport tcp -i rtsp://127.0.0.1:8554/live/dji \
+          <pre class="code"><code>ffmpeg -flags low_delay -use_wallclock_as_timestamps 1 \
+  -fflags +genpts -r 30 -rtsp_transport tcp \
+  -i rtsp://127.0.0.1:8554/live/dji \
   -c:v libx264 -preset veryfast -tune zerolatency \
   -g 30 -keyint_min 30 -bf 0 -fps_mode cfr \
   -b:v 6M -maxrate 6M -bufsize 6M \
-  -c:a aac -b:a 128k -f flv \
+  -c:a aac -b:a 128k -af aresample=async=1 \
+  -flush_packets 1 -f flv \
   rtmp://127.0.0.1:1935/live/dji-h264</code></pre>
         </div>
       </section>
@@ -318,7 +325,12 @@
                 Le .deb contient l'application seule (3,8 Mo). Les dépendances
                 GTK et WebKitGTK sont résolues par apt.
               </p>
-              <code>sudo apt install ./dji-caster_0.1.0_amd64.deb</code>
+              <code>sudo apt install ./dji-caster_0.1.1_amd64.deb</code>
+              <p class="hero-note">
+                macOS : dézippez l'archive universelle et glissez
+                <span class="mono">dji-caster.app</span> dans Applications.
+                L'app n'est pas signée : clic droit → Ouvrir au premier lancement.
+              </p>
             </article>
             <article class="step">
               <h3>3 · Lancer et scanner</h3>
@@ -353,8 +365,11 @@
               </p>
             </div>
             <div class="download-actions">
-              <a class="btn btn--primary" href="./downloads/dji-caster_0.1.0_amd64.deb" download>
+              <a class="btn btn--primary" href="./downloads/dji-caster_0.1.1_amd64.deb" download>
                 Télécharger le .deb
+              </a>
+              <a class="btn btn--ghost" href="./downloads/dji-caster-macos-universal.zip" download>
+                macOS (.zip)
               </a>
               <a class="btn btn--ghost" href="https://github.com/Mizael-go/dji-caster" rel="noopener">
                 Code source

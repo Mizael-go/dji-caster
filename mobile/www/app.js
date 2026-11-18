@@ -132,6 +132,9 @@ plugin?.addListener("state", (event) => {
   else if (state === "live") {
     setStatus("En direct — " + (event.message || buildUrl()), "live");
     setRunning(true);
+  } else if (state === "reconnecting") {
+    setStatus(event.message || "Reconnexion en cours…", "warn");
+    setRunning(true);
   } else if (state === "idle") {
     setStatus("Diffusion arrêtée.");
     setRunning(false);

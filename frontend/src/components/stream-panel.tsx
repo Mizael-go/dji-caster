@@ -127,6 +127,32 @@ export function StreamPanel({ snapshot }: { snapshot: Snapshot }) {
           <PathRow label="Caméra → MediaMTX" path={stream.incoming} />
           {stream.transcode && <PathRow label="ffmpeg → H.264" path={stream.outgoing} />}
         </div>
+
+        <div className="mt-2.5 rounded-xl border border-border bg-muted/40 px-2.5 py-2">
+          <p className="text-[10px] font-semibold text-muted-foreground">
+            Source à saisir dans DJI Relay
+          </p>
+          <p className="mt-1 select-all break-all font-mono text-[10px] text-foreground">
+            {stream.directURL}
+          </p>
+          <p className="mt-1 text-[10px] leading-snug text-muted-foreground">
+            Le téléphone publie sur cette URL. Si la conversion est activée, l’URL OBS ci-dessus
+            utilise séparément <span className="font-mono text-foreground">live/dji-h264</span>.
+          </p>
+          <p className="mt-1.5 border-t border-border pt-1.5 text-[10px] leading-snug text-muted-foreground">
+            <span className="font-semibold text-foreground">Latence</span> — dans OBS, propriétés
+            de la source média : tampon réseau à 0 Mo et « Reconnecter » activé.
+          </p>
+        </div>
+
+        {stream.transcode && !stream.incoming.ready && stream.outgoing.ready && (
+          <p className="mt-2 rounded-lg bg-[color:var(--color-warning)]/10 px-2 py-1.5 text-[10.5px] leading-snug text-[color:var(--color-warning)]">
+            Le flux est actif sur la sortie H.264 mais aucune source n’arrive sur{" "}
+            <span className="font-mono">live/dji</span>. Dans DJI Relay, remplacez le chemin par{" "}
+            <span className="font-mono">live/dji</span> : <span className="font-mono">live/dji-h264</span>{" "}
+            est réservé à la sortie vers OBS.
+          </p>
+        )}
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-3.5 card-raised">
@@ -137,8 +163,9 @@ export function StreamPanel({ snapshot }: { snapshot: Snapshot }) {
               Convertir en H.264
             </h2>
             <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-              Si OBS refuse le HEVC : ffmpeg republie la scène sur{" "}
-              <span className="font-mono text-foreground">live/dji-h264</span>.
+              Republie la scène sur <span className="font-mono text-foreground">live/dji-h264</span>{" "}
+              avec des timestamps assainis : c'est l'URL à donner à OBS (évite les
+              images figées).
             </p>
           </div>
           <button
@@ -171,6 +198,26 @@ export function StreamPanel({ snapshot }: { snapshot: Snapshot }) {
             La caméra émet en HEVC (H.265). Si OBS n'affiche rien, activez la conversion.
           </p>
         )}
+        {!stream.transcode &&
+          stream.incoming.ready &&
+          (stream.incoming.codecs ?? []).includes("H264") && (
+            <div className="mt-2 rounded-lg bg-[color:var(--color-warning)]/10 px-2 py-2 text-[10.5px] leading-snug text-[color:var(--color-warning)]">
+              <p>
+                Le relais Android peut envoyer des timestamps incorrects : en lecture directe,
+                OBS peut afficher une image en retard ou se figer. Activez la republication
+                horodatée, puis utilisez l’URL OBS <span className="font-mono">live/dji-h264</span>.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-2 h-7 bg-card text-foreground"
+                disabled={transcodeMutation.isPending || !snapshot.environment.ffmpegReady}
+                onClick={() => transcodeMutation.mutate(true)}
+              >
+                Activer la sortie H.264 pour OBS
+              </Button>
+            </div>
+          )}
         {!snapshot.environment.ffmpegReady && (
           <p className="mt-2 rounded-lg bg-[color:var(--color-warning)]/10 px-2 py-1.5 text-[10.5px] leading-snug text-[color:var(--color-warning)]">
             ffmpeg absent : installez-le (apt install ffmpeg) pour activer la conversion.

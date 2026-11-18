@@ -28,13 +28,37 @@ type Settings struct {
 	MediaMtx   string    `json:"mediaMtxPath"`
 	DjiCtl     string    `json:"djiCtlPath"`
 	FFmpeg     string    `json:"ffmpegPath"`
+	// Réglages appliqués à distance à l'encodeur de la caméra DJI lors du
+	// forçage BLE (options --resolution/--bitrate-kbps/--fps de djictl).
+	StreamResolution string `json:"streamResolution"`
+	StreamBitrate    int    `json:"streamBitrate"`
+	StreamFPS        int    `json:"streamFps"`
 }
 
 func Defaults() Settings {
 	return Settings{
-		Networks: []Network{},
-		RtmpPort: 1935,
-		ApiPort:  9997,
+		Networks:         []Network{},
+		RtmpPort:         1935,
+		ApiPort:          9997,
+		StreamResolution: "1080p",
+		StreamBitrate:    6000,
+		StreamFPS:        30,
+	}
+}
+
+// NormalizeStream normalise les réglages d'encodage de la caméra aux valeurs
+// acceptées par djictl : 480p/720p/1080p, 25 ou 30 fps, débit 1000–20000 kbps.
+func (s *Settings) NormalizeStream() {
+	switch s.StreamResolution {
+	case "480p", "720p", "1080p":
+	default:
+		s.StreamResolution = "1080p"
+	}
+	if s.StreamFPS != 25 && s.StreamFPS != 30 {
+		s.StreamFPS = 30
+	}
+	if s.StreamBitrate < 1000 || s.StreamBitrate > 20000 {
+		s.StreamBitrate = 6000
 	}
 }
 
@@ -146,6 +170,7 @@ func Load() (Settings, error) {
 	if s.Networks == nil {
 		s.Networks = []Network{}
 	}
+	s.NormalizeStream()
 	s.sortNetworks()
 	return s, nil
 }

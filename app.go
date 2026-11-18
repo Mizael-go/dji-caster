@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"djicaster/internal/ble"
 	"djicaster/internal/bins"
+	"djicaster/internal/ble"
 	"djicaster/internal/config"
 	"djicaster/internal/djictl"
 	"djicaster/internal/logs"
@@ -87,16 +87,16 @@ type PathView struct {
 }
 
 type StreamView struct {
-	Host          string   `json:"host"`
-	RtmpPort      int      `json:"rtmpPort"`
-	DirectURL     string   `json:"directURL"`
-	ObsURL        string   `json:"obsURL"`
-	LocalURL      string   `json:"localURL"`
-	Transcode     bool     `json:"transcode"`
-	TranscodeErr  string   `json:"transcodeErr"`
-	Transcoding   bool     `json:"transcoding"`
-	Incoming      PathView `json:"incoming"`
-	Outgoing      PathView `json:"outgoing"`
+	Host         string   `json:"host"`
+	RtmpPort     int      `json:"rtmpPort"`
+	DirectURL    string   `json:"directURL"`
+	ObsURL       string   `json:"obsURL"`
+	LocalURL     string   `json:"localURL"`
+	Transcode    bool     `json:"transcode"`
+	TranscodeErr string   `json:"transcodeErr"`
+	Transcoding  bool     `json:"transcoding"`
+	Incoming     PathView `json:"incoming"`
+	Outgoing     PathView `json:"outgoing"`
 }
 
 type Snapshot struct {
@@ -111,10 +111,13 @@ type Snapshot struct {
 }
 
 type ConnectRequest struct {
-	Address string `json:"address"`
-	Name    string `json:"name"`
-	SSID    string `json:"ssid"`
-	PSK     string `json:"psk"`
+	Address    string `json:"address"`
+	Name       string `json:"name"`
+	SSID       string `json:"ssid"`
+	PSK        string `json:"psk"`
+	Resolution string `json:"resolution"`
+	Bitrate    int    `json:"bitrate"`
+	FPS        int    `json:"fps"`
 }
 
 // ------------------------------------------------------------------------ App
@@ -141,9 +144,9 @@ type App struct {
 	sessionCmd    string
 	djiLogTail    []string
 
-	emitMu    sync.Mutex
-	lastEmit  time.Time
-	pending   bool
+	emitMu   sync.Mutex
+	lastEmit time.Time
+	pending  bool
 }
 
 func NewApp() *App {
@@ -311,8 +314,8 @@ func (a *App) Snapshot() Snapshot {
 			DjiCtlReady:   a.djiCtlPath() != "",
 			FFmpegReady:   a.ffmpegPath() != "",
 		},
-		Radio: radioView(),
-		Scan:  ScanView{Scanning: a.scanner.Scanning(), Err: a.scanner.Err()},
+		Radio:   radioView(),
+		Scan:    ScanView{Scanning: a.scanner.Scanning(), Err: a.scanner.Err()},
 		Devices: devices,
 		Server: ServerView{
 			Running:  running,
@@ -476,35 +479,53 @@ func (a *App) StartConnect(req ConnectRequest) error {
 	}
 
 	a.mu.Lock()
-	// Chaque connexion réussie mémorise le réseau (SSID + PSK) pour la fois
-	// suivante : c'est la liste des profils du formulaire.
+	// Chaque connexion réussie mémorise le réseau (SSID + PSK) et les
+	// réglages d'encodage pour la fois suivante : c'est la liste des profils
+	// du formulaire.
 	a.settings.UpsertNetwork(ssid, req.PSK)
 	a.settings.LastDevice = addr
+	// Champs absents (ancien client) : on garde les réglages mémorisés.
+	if strings.TrimSpace(req.Resolution) != "" {
+		a.settings.StreamResolution = strings.TrimSpace(req.Resolution)
+	}
+	if req.Bitrate > 0 {
+		a.settings.StreamBitrate = req.Bitrate
+	}
+	if req.FPS > 0 {
+		a.settings.StreamFPS = req.FPS
+	}
+	a.settings.NormalizeStream()
 	settings := a.settings
 	a.sessionState = "starting"
 	a.sessionErr = ""
 	a.sessionHint = ""
 	a.sessionDevice = addr
 	a.sessionName = req.Name
-	a.sessionCmd = djictl.CommandLine(bin, addr, ssid, req.PSK, media.RtmpURL(media.LocalIP(), settings.RtmpPort, media.PathIn))
+	a.sessionCmd = djictl.CommandLine(bin, addr, ssid, req.PSK,
+		media.RtmpURL(media.LocalIP(), settings.RtmpPort, media.PathIn),
+		settings.StreamResolution, settings.StreamBitrate, settings.StreamFPS)
 	a.djiLogTail = nil
 	a.mu.Unlock()
 	_ = config.Save(settings)
 
 	rtmpURL := media.RtmpURL(media.LocalIP(), settings.RtmpPort, media.PathIn)
-	a.log("djictl", fmt.Sprintf("connexion de %s (%s) au Wi-Fi « %s » → %s", req.Name, addr, ssid, rtmpURL))
+	a.log("djictl", fmt.Sprintf("connexion de %s (%s) au Wi-Fi « %s » → %s (%s, %d kbps, %d fps)",
+		req.Name, addr, ssid, rtmpURL,
+		settings.StreamResolution, settings.StreamBitrate, settings.StreamFPS))
 	a.emit()
 
 	go func() {
-		err := a.runner.Run(a.ctx, bin, addr, ssid, req.PSK, rtmpURL, func(line string) {
-			a.mu.Lock()
-			a.djiLogTail = append(a.djiLogTail, line)
-			if len(a.djiLogTail) > 40 {
-				a.djiLogTail = a.djiLogTail[len(a.djiLogTail)-40:]
-			}
-			a.mu.Unlock()
-			a.log("djictl", line)
-		})
+		err := a.runner.Run(a.ctx, bin, addr, ssid, req.PSK, rtmpURL,
+			settings.StreamResolution, settings.StreamBitrate, settings.StreamFPS,
+			func(line string) {
+				a.mu.Lock()
+				a.djiLogTail = append(a.djiLogTail, line)
+				if len(a.djiLogTail) > 40 {
+					a.djiLogTail = a.djiLogTail[len(a.djiLogTail)-40:]
+				}
+				a.mu.Unlock()
+				a.log("djictl", line)
+			})
 
 		a.mu.Lock()
 		if err != nil {
@@ -855,4 +876,3 @@ func obsPath(transcode bool) string {
 	}
 	return media.PathIn
 }
-

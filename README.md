@@ -55,6 +55,9 @@ Le tag `webkit2_41` est nécessaire quand seul `webkit2gtk-4.1` est disponible.
   outil local, pas un coffre-fort.
 - `djictl` doit pouvoir parler au Bluetooth ; si l'accès est refusé, l'app
   affiche la cause (polkit / groupe `bluetooth`). L'app ne lance jamais `sudo`.
-- Le flux direct est en HEVC : si OBS n'affiche rien, activez « Convertir en
-  H.264 » dans l'onglet Diffusion.
+- Pour le relais Android, activez « Convertir en H.264 » dans l'onglet
+  Diffusion puis utilisez l'URL `live/dji-h264` affichée pour OBS : le flux
+  RootEncoder direct (`live/dji`) peut avoir des timestamps incorrects et
+  apparaître en retard ou se figer. Pour les autres caméras, activez la
+  conversion si OBS ne prend pas en charge le codec reçu.
 - Le Wi-Fi ciblé doit être en 2,4 GHz (contrainte des caméras DJI).
