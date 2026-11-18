@@ -14,7 +14,7 @@ depends_on: ["DJC-TASK-011", "DJC-TASK-012"]
 blocks: []
 related_to: ["DJC-TASK-003", "DJC-TASK-010"]
 tokens_estimated: 15k
-tokens_used: 13k
+tokens_used: 16k
 created: "2026-11-18"
 updated: "2026-11-18"
 ---
@@ -54,9 +54,9 @@ l'application desktop (Linux, Windows, macOS).
 - [x] Binaire desktop reconstruit et `.deb` 0.1.1 produit.
 - [x] Landing pointée sur `dji-caster_0.1.1_amd64.deb` et APK 0.1.3.
 - [x] Workflow macOS présent et déclenché au push sur `main`.
-- [ ] Archive `dji-caster-macos-universal.zip` publiée par la CI puis
+- [x] Archive `dji-caster-macos-universal.zip` publiée par la CI puis
       copiée dans `landing/downloads/`.
-- [ ] Déploiement Vercel `--prod` depuis la racine du dépôt, les trois
+- [x] Déploiement Vercel `--prod` depuis la racine du dépôt, les trois
       fichiers servis et vérifiés (sha256 de l'APK identique).
 
 ## Notes
@@ -65,3 +65,10 @@ Vérification locale : `wails build -tags webkit2_41`,
 `VERSION=0.1.1 ./scripts/build-deb.sh`, `python3 scripts/make-icons.py`,
 `./.apk-build.sh` (sha256 `f79c5130…`). Le paquet macOS dépend du run
 GitHub Actions (pas de Mac disponible ici).
+
+Run Actions `44245389823` puis `44246201025` (version produit 0.1.1) :
+`Mach-O universal binary with 2 architectures [x86_64, arm64]`,
+`CFBundleShortVersionString 0.1.1`, `iconfile.icns` présent.
+Déploiement Vercel `dji-caster-7sz816txc` : les trois fichiers répondent
+en HTTP 200 avec les sha256 locaux (APK `f79c5130…`, `.deb` `7884e98f…`,
+zip `a3964c05…`).
