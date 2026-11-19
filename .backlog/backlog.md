@@ -1,6 +1,6 @@
 # Backlog — DJI Caster
 
-Mis à jour : 2026-11-18 · prochaine revue : à la prochaine session
+Mis à jour : 2026-11-19 · prochaine revue : à la prochaine session
 Budget sprint : 200k tokens (convention `skills/backlog/SKILL.md`)
 
 ## in-progress
@@ -21,6 +21,7 @@ _(vide)_
 
 | ID | Titre | Priorité | Points | Estimation | Dépend de |
 | --- | --- | --- | --- | --- | --- |
+| [DJC-BUG-009](tasks/DJC-BUG-009.md) | Latence ~4 s DJI → OBS (-r en entrée, preset) | high | 2 | 10k | — |
 | [DJC-BUG-007](tasks/DJC-BUG-007.md) | Relais Android : getSurfaceTexture null au Démarrer | high | 3 | 12k | — |
 | [DJC-BUG-008](tasks/DJC-BUG-008.md) | OBS figé / saccadé : timestamps cassés du relais | high | 3 | 12k | TASK-008 |
 | [DJC-TASK-008](tasks/DJC-TASK-008.md) | Relais : reconnexion auto + adaptation orientation | high | 3 | 14k | BUG-007 |

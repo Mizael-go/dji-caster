@@ -1,8 +1,10 @@
 package media
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -107,7 +109,7 @@ func (t *Transcoder) supervise(ctx context.Context, output, input string) {
 		t.cmd = cmd
 		t.mu.Unlock()
 
-		go pipeLines(stdout, t.logf)
+		go watchProgress(stdout, t.logf)
 		go pipeLines(stderr, t.logf)
 
 		err = cmd.Wait()
@@ -128,6 +130,45 @@ func (t *Transcoder) supervise(ctx context.Context, output, input string) {
 		case <-ctx.Done():
 			return
 		case <-time.After(3 * time.Second):
+		}
+	}
+}
+
+// slowSpeed is the encoding speed under which ffmpeg falls behind real time.
+// slowReports consecutive reports (stats_period = 2 s) trigger a warning.
+const (
+	slowSpeed   = 0.95
+	slowReports = 3
+)
+
+// watchProgress reads ffmpeg's -progress output and logs only state changes:
+// a warning when transcoding stays slower than real time (latency then grows
+// without bound), and a notice once it catches up again.
+func watchProgress(r io.Reader, logf func(string)) {
+	sc := bufio.NewScanner(r)
+	slow := 0
+	warned := false
+	for sc.Scan() {
+		key, val, ok := strings.Cut(strings.TrimSpace(sc.Text()), "=")
+		if !ok || key != "speed" {
+			continue
+		}
+		speed, err := strconv.ParseFloat(strings.TrimSuffix(strings.TrimSpace(val), "x"), 64)
+		if err != nil {
+			continue // "N/A" au démarrage
+		}
+		if speed < slowSpeed {
+			slow++
+			if slow >= slowReports && !warned {
+				warned = true
+				logf(fmt.Sprintf("Transcodage plus lent que le temps réel (%.2fx) : la latence va augmenter. Baissez la résolution ou le débit de la caméra.", speed))
+			}
+			continue
+		}
+		slow = 0
+		if warned {
+			warned = false
+			logf(fmt.Sprintf("Transcodage revenu au temps réel (%.2fx)", speed))
 		}
 	}
 }
@@ -154,6 +195,12 @@ func transcodeArgs(input, output string) []string {
 		"-hide_banner",
 		"-nostdin",
 		"-loglevel", "warning",
+		// Progression machine sur stdout (lignes clé=valeur) : surveillée par
+		// watchProgress pour signaler un transcodage plus lent que le temps
+		// réel. -nostats évite les lignes \r illisibles sur stderr.
+		"-nostats",
+		"-progress", "pipe:1",
+		"-stats_period", "2",
 		"-flags", "low_delay",
 		// Les timestamps du flux source (caméra DJI ou relais Android) sont
 		// cassés : DTS égaux/répétés et audio démarrant avant la vidéo. Sans
@@ -163,10 +210,13 @@ func transcodeArgs(input, output string) []string {
 		"-use_wallclock_as_timestamps", "1",
 		// +genpts complète les pts manquants ; avec l'horloge murale il ne
 		// dérive plus (le flux est déjà entièrement timestampé).
+		//
+		// Pas de -r en entrée : il remplace les timestamps (y compris l'horloge
+		// murale) par un compteur d'images à 1/30 s. Après une coupure Wi-Fi,
+		// la rafale d'images rattrapée était alors rejouée en temps réel et le
+		// retard s'ajoutait définitivement (latence croissante, ~4 s observées).
+		// La cadence est imposée en sortie (-r + -fps_mode cfr).
 		"-fflags", "+genpts",
-		// Sans framerate d'entrée forcé, genpts peut dériver sur une source
-		// mal timestampée (framerate apparent ~90 000 fps vu par x264).
-		"-r", "30",
 		// Sonder vite : moins d'échantillons analysés = premier frame plus tôt.
 		"-analyzeduration", "1000000",
 		"-probesize", "1000000",
@@ -175,7 +225,9 @@ func transcodeArgs(input, output string) []string {
 		"-rtsp_transport", "tcp",
 		"-i", input,
 		"-c:v", "libx264",
-		"-preset", "veryfast",
+		// ultrafast : le décodage HEVC logiciel + x264 1080p doit rester
+		// au-dessus du temps réel, sinon le retard s'accumule sans fin.
+		"-preset", "ultrafast",
 		"-tune", "zerolatency",
 		"-profile:v", "high",
 		"-pix_fmt", "yuv420p",
@@ -189,6 +241,11 @@ func transcodeArgs(input, output string) []string {
 		"-b:v", "6M",
 		"-maxrate", "6M",
 		"-bufsize", "6M",
+		// Cadence fixe en sortie, calculée sur l'horloge murale : une rafale
+		// après coupure est écrêtée (images en trop jetées) et un trou est
+		// comblé par duplication, ce qui garde la latence constante. -r en
+		// sortie fixe aussi le framerate vu par x264 (sinon ~90 000 fps).
+		"-r", "30",
 		"-fps_mode", "cfr",
 		"-c:a", "aac",
 		"-b:a", "128k",

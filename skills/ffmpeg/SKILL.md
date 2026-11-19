@@ -24,17 +24,28 @@ sur la sortie). RTSP n'écoute qu'en loopback, jamais exposé au réseau.
 ## Commande de transcodage (référence)
 
 ```bash
-ffmpeg -hide_banner -nostdin -loglevel warning \
-  -flags low_delay -rtsp_transport tcp -i rtsp://127.0.0.1:8554/live/dji \
-  -c:v libx264 -preset veryfast -tune zerolatency -profile:v high \
-  -pix_fmt yuv420p -g 60 -b:v 6M -maxrate 6M -bufsize 12M \
-  -c:a aac -b:a 128k -ar 44100 -f flv rtmp://127.0.0.1:1935/live/dji-h264
+ffmpeg -hide_banner -nostdin -loglevel warning -nostats -progress pipe:1 -stats_period 2 \
+  -flags low_delay -use_wallclock_as_timestamps 1 -fflags +genpts \
+  -analyzeduration 1000000 -probesize 1000000 \
+  -rtsp_transport tcp -i rtsp://127.0.0.1:8554/live/dji \
+  -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high -pix_fmt yuv420p \
+  -g 30 -keyint_min 30 -sc_threshold 0 -bf 0 -x264-params rc-lookahead=0:sync-lookahead=0 \
+  -b:v 6M -maxrate 6M -bufsize 6M -r 30 -fps_mode cfr \
+  -c:a aac -b:a 128k -ar 44100 -af aresample=async=1 \
+  -flush_packets 1 -f flv rtmp://127.0.0.1:1935/live/dji-h264
 ```
 
 - Ne pas ajouter `-fflags nobuffer` : ffmpeg rate alors la piste vidéo.
+- **Jamais de `-r` en entrée** : il remplace l'horloge murale par un compteur
+  d'images ; après chaque coupure Wi-Fi la rafale est rejouée en temps réel et
+  la latence s'accumule (DJC-BUG-009). La cadence se fixe en sortie
+  (`-r 30 -fps_mode cfr`), ce qui jette les images en trop et duplique sur un trou.
+- `-preset ultrafast` : décodage HEVC logiciel + x264 1080p doit tenir ≥ 1x.
+  `-progress pipe:1` est lu par `watchProgress`, qui alerte dans les logs si
+  `speed` reste < 0.95x (latence croissante).
 - ffmpeg n'est lancé que si le chemin `/live/dji` est `ready` (API MediaMTX) et
   est relancé toutes les 3 s en cas de coupure (`internal/media/transcoder.go`).
-- `-g 60` = keyframe toutes les 2 s à 30 fps : bon compromis latence/seek OBS.
+- `-g 30` = keyframe toutes les secondes à 30 fps : OBS démarre vite.
 
 ## Vérifier un flux
 
