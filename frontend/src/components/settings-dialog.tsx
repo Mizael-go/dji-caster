@@ -1,21 +1,12 @@
 import { useEffect, useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import {
-  AlertTriangle,
-  Check,
-  Download,
-  FolderOpen,
-  Loader2,
-  Trash2,
-  Wifi,
-} from "lucide-react"
+import { AlertTriangle, Check, Download, FolderOpen, Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { Button } from "~/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog"
@@ -77,7 +68,6 @@ export function SettingsDialog({
   const queryClient = useQueryClient()
   const [error, setError] = useState("")
   const env = snapshot.environment
-  const networks = snapshot.settings.networks ?? []
 
   const {
     register,
@@ -126,16 +116,7 @@ export function SettingsDialog({
     onError: (err) => setError(errorMessage(err)),
   })
 
-  const deleteMutation = useMutation({
-    mutationFn: api.deleteNetwork,
-    onSuccess: () => {
-      setError("")
-      void queryClient.invalidateQueries({ queryKey: ["snapshot"] })
-    },
-    onError: (err) => setError(errorMessage(err)),
-  })
-
-  const allReady = env.mediaMtxReady && env.djiCtlReady && env.ffmpegReady
+  const allReady = env.mediaMtxReady && env.ffmpegReady
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -143,7 +124,7 @@ export function SettingsDialog({
         <DialogHeader>
           <DialogTitle className="text-[14px]">Réglages</DialogTitle>
           <DialogDescription className="text-[11px] leading-snug">
-            Réseaux mémorisés, ports du serveur et outils locaux.
+            Ports du serveur et outils locaux.
           </DialogDescription>
         </DialogHeader>
 
@@ -151,48 +132,6 @@ export function SettingsDialog({
           onSubmit={handleSubmit((values) => saveMutation.mutate(values))}
           className="space-y-3"
         >
-          <div className="space-y-1.5">
-            <p className="eyebrow">Réseaux mémorisés</p>
-            {networks.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border px-2.5 py-2 text-[10.5px] leading-snug text-muted-foreground">
-                Aucun réseau. Le premier sera mémorisé à la connexion de la caméra.
-              </p>
-            ) : (
-              <ul className="space-y-1">
-                {networks.map((net) => (
-                  <li
-                    key={net.ssid}
-                    className="flex items-center gap-2 rounded-xl bg-muted/70 px-2 py-1.5"
-                  >
-                    <Wifi className="size-3 shrink-0 text-muted-foreground" />
-                    <span className="min-w-0 flex-1 truncate font-mono text-[10.5px]">
-                      {net.ssid}
-                    </span>
-                    <span className="shrink-0 font-mono text-[8.5px] text-muted-foreground">
-                      {net.psk ? "••••" : "ouvert"}
-                    </span>
-                    <Button
-                      type="button"
-                      size="icon-xs"
-                      variant="ghost"
-                      aria-label={`Supprimer ${net.ssid}`}
-                      onClick={() => deleteMutation.mutate(net.ssid)}
-                      disabled={deleteMutation.isPending}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p className="text-[9.5px] leading-snug text-muted-foreground">
-              Détecté : {env.wifiSSID || "inconnu"} · stockés en local (fichier 0600).
-            </p>
-          </div>
-
-          <Separator />
-
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
               <Label htmlFor="set-rtmp" className="eyebrow block">
@@ -243,13 +182,7 @@ export function SettingsDialog({
               hint="non installé"
             />
             <DependencyRow
-              label="djictl (BLE → Wi-Fi → RTMP)"
-              ok={env.djiCtlReady}
-              path={env.djiCtlPath}
-              hint="non compilé"
-            />
-            <DependencyRow
-              label="ffmpeg (transcodage optionnel)"
+              label="ffmpeg (encodage WebRTC H.264 + Opus)"
               ok={env.ffmpegReady}
               path={env.ffmpegPath}
               hint="absent du PATH"
@@ -268,7 +201,7 @@ export function SettingsDialog({
                 ) : (
                   <Download />
                 )}
-                {allReady ? "Mettre à jour les outils" : "Installer les outils"}
+                {allReady ? "Mettre à jour MediaMTX" : "Installer MediaMTX"}
               </Button>
               <Button
                 type="button"

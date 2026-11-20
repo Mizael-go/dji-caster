@@ -1,6 +1,6 @@
 # Backlog — DJI Caster
 
-Mis à jour : 2026-11-19 · prochaine revue : à la prochaine session
+Mis à jour : 2026-11-20 · prochaine revue : à la prochaine session
 Budget sprint : 200k tokens (convention `skills/backlog/SKILL.md`)
 
 ## in-progress
@@ -41,6 +41,9 @@ _(vide)_
 | [DJC-TASK-001](tasks/DJC-TASK-001.md) | Relais Android de test (Capacitor + RootEncoder) | 2026-11-17 | 34k |
 | [DJC-SPIKE-002](tasks/DJC-SPIKE-002.md) | Faisabilité passerelle Android RTMP vs WHIP | 2026-11-17 | 7.5k |
 | [DJC-TASK-003](tasks/DJC-TASK-003.md) | APK du relais sur la landing + doc | 2026-11-17 | 6k |
+| [DJC-TASK-014](tasks/DJC-TASK-014.md) | Sorties HLS basse latence et WebRTC | 2026-11-19 | 24k |
+| [DJC-TASK-015](tasks/DJC-TASK-015.md) | Son de la caméra en WebRTC (relais Opus) | 2026-11-19 | 11k |
+| [DJC-TASK-016](tasks/DJC-TASK-016.md) | WebRTC seule sortie, sans Bluetooth, audio Opus direct | 2026-11-20 | 26k |
 
 ## Dettes hors backlog
 
@@ -53,4 +56,7 @@ _(vide)_
 | Date | Événement |
 | --- | --- |
 | 2026-11-17 | Création du backlog, v0.1.0 livrée, relais Android compilé. |
+| 2026-11-19 | HLS basse latence + WebRTC activés dans MediaMTX, liens dans Diffusion. |
+| 2026-11-19 | Audio WebRTC : relais Opus sur `live/dji-webrtc`, AAC conservé pour OBS/HLS. |
+| 2026-11-20 | v0.2.0 : Bluetooth et sorties RTMP/HLS retirés, WebRTC seule sortie, audio Opus encodé avec la vidéo. |
 | 2026-11-18 | v0.1.1 bureau + APK 0.1.3 (plein écran, rotation), encodeur DJI à distance, icône unifiée, CI macOS. |

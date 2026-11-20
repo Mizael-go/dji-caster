@@ -2,12 +2,10 @@ package media
 
 import (
 	"net"
-	"os/exec"
-	"strings"
 )
 
-// LocalIP returns the LAN address the camera should push to. It is the first
-// private IPv4 of a non-loopback, up interface.
+// LocalIP returns the LAN address the camera or the Android relay should push
+// to. It is the first private IPv4 of a non-loopback, up interface.
 func LocalIP() string {
 	var fallback string
 	ifaces, err := net.Interfaces()
@@ -43,31 +41,4 @@ func LocalIP() string {
 		return fallback
 	}
 	return "127.0.0.1"
-}
-
-// WifiSSID reads the SSID of the active connection using NetworkManager, then
-// falls back to iwgetid. An empty string means "could not detect".
-func WifiSSID() string {
-	if nmcli, err := exec.LookPath("nmcli"); err == nil {
-		out, err := exec.Command(nmcli, "-t", "-f", "ACTIVE,SSID", "dev", "wifi").Output()
-		if err == nil {
-			for _, line := range strings.Split(string(out), "\n") {
-				line = strings.TrimSpace(line)
-				if strings.HasPrefix(line, "yes:") {
-					if ssid := strings.TrimPrefix(line, "yes:"); ssid != "" {
-						return ssid
-					}
-				}
-			}
-		}
-	}
-	if iwgetid, err := exec.LookPath("iwgetid"); err == nil {
-		out, err := exec.Command(iwgetid, "-r").Output()
-		if err == nil {
-			if ssid := strings.TrimSpace(string(out)); ssid != "" {
-				return ssid
-			}
-		}
-	}
-	return ""
 }

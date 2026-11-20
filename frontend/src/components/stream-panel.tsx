@@ -1,6 +1,17 @@
 import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Check, Copy, Loader2, Play, Power, Square, Waves, Zap } from "lucide-react"
+import {
+  Check,
+  Copy,
+  ExternalLink,
+  Loader2,
+  Play,
+  Power,
+  Radio,
+  Square,
+  Volume2,
+  Waves,
+} from "lucide-react"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import {
@@ -10,9 +21,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { api, copyText, errorMessage } from "~/lib/api"
+import { api, copyText, errorMessage, openURL } from "~/lib/api"
 import { cn, formatBytes } from "~/lib/utils"
 import type { PathView, Snapshot } from "~/lib/types"
+
+// MediaMTX nomme les pistes d'après leur codec : toute piste qui n'est pas
+// vidéo est de l'audio (Opus, AAC…).
+const VIDEO_CODECS = ["H264", "H265", "AV1", "VP8", "VP9", "MPEG-4 Video", "MPEG-1/2 Video", "M-JPEG"]
+const hasAudio = (codecs: string[]) =>
+  codecs.some((codec) => !VIDEO_CODECS.some((video) => codec.startsWith(video)))
 
 function PathRow({ label, path }: { label: string; path: PathView }) {
   return (
@@ -39,10 +56,11 @@ export function StreamPanel({ snapshot }: { snapshot: Snapshot }) {
   const queryClient = useQueryClient()
   const stream = snapshot.stream
   const [hostMode, setHostMode] = useState<"lan" | "local">("lan")
-  const [copied, setCopied] = useState(false)
+  const [copiedKey, setCopiedKey] = useState("")
   const [error, setError] = useState("")
 
-  const url = hostMode === "local" ? stream.localURL : stream.obsURL
+  const webrtcUrl = hostMode === "local" ? stream.webrtcLocalURL : stream.webrtcURL
+  const incomingAudio = hasAudio(stream.incoming.codecs ?? [])
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["snapshot"] })
 
   const serverMutation = useMutation({
@@ -54,19 +72,11 @@ export function StreamPanel({ snapshot }: { snapshot: Snapshot }) {
     onError: (err) => setError(errorMessage(err)),
   })
 
-  const transcodeMutation = useMutation({
-    mutationFn: (enabled: boolean) => api.setTranscode(enabled),
-    onSuccess: () => {
-      setError("")
-      void refresh()
-    },
-    onError: (err) => setError(errorMessage(err)),
-  })
-
-  const onCopy = async () => {
-    const ok = await copyText(url)
-    setCopied(ok)
-    window.setTimeout(() => setCopied(false), 1600)
+  const onCopy = async (key: string, value: string) => {
+    const ok = await copyText(value)
+    if (!ok) return
+    setCopiedKey(key)
+    window.setTimeout(() => setCopiedKey(""), 1600)
   }
 
   return (
@@ -76,15 +86,17 @@ export function StreamPanel({ snapshot }: { snapshot: Snapshot }) {
           <div className="min-w-0">
             <h2 className="flex items-center gap-1.5 text-[12px] font-bold tracking-tight">
               <Waves className="size-3.5 text-[color:var(--color-signal)]" />
-              Sortie RTMP
+              Sortie WebRTC
             </h2>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">À coller dans OBS</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Seule sortie de lecture, latence minimale
+            </p>
           </div>
           <Badge
             variant="outline"
             className={cn(
               "h-5 shrink-0 gap-1 border px-1.5 text-[8.5px] font-bold uppercase tracking-[0.08em]",
-              stream.incoming.ready
+              stream.webrtcReady
                 ? "border-[color:var(--color-signal)]/35 bg-[color:var(--color-volt)]/25 text-[#3f4a1a]"
                 : "border-border text-muted-foreground",
             )}
@@ -92,18 +104,21 @@ export function StreamPanel({ snapshot }: { snapshot: Snapshot }) {
             <span
               className={cn(
                 "size-1.5 rounded-full",
-                stream.incoming.ready
+                stream.webrtcReady
                   ? "bg-[color:var(--color-live)] live-dot"
                   : "bg-muted-foreground/40",
               )}
             />
-            {stream.incoming.ready ? "flux actif" : "hors ligne"}
+            {stream.webrtcReady ? "flux actif" : "hors ligne"}
           </Badge>
         </div>
 
         <div className="mt-2.5 rounded-xl bg-[color:var(--color-ink)] p-2.5">
           <p className="select-all break-all font-mono text-[10.5px] leading-relaxed text-[color:var(--color-volt)]">
-            {url}
+            {webrtcUrl}
+          </p>
+          <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-[#8b8677]">
+            ~0,2–0,5 s · port {stream.webrtcPort}
           </p>
         </div>
 
@@ -117,122 +132,101 @@ export function StreamPanel({ snapshot }: { snapshot: Snapshot }) {
               <SelectItem value="local">Local · 127.0.0.1</SelectItem>
             </SelectContent>
           </Select>
-          <Button size="sm" onClick={onCopy} className="h-9 shrink-0">
-            {copied ? <Check /> : <Copy />}
-            {copied ? "Copié" : "Copier"}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 shrink-0 bg-white"
+            onClick={() => void onCopy("webrtc", webrtcUrl)}
+          >
+            {copiedKey === "webrtc" ? <Check /> : <Copy />}
+            {copiedKey === "webrtc" ? "Copié" : "Copier"}
+          </Button>
+          <Button
+            size="sm"
+            className="h-9 shrink-0"
+            onClick={() => openURL(webrtcUrl)}
+          >
+            <ExternalLink />
+            Ouvrir
           </Button>
         </div>
 
+        <div className="mt-2.5 flex items-start gap-1.5 text-[10px] leading-snug text-muted-foreground">
+          <Volume2 className="mt-0.5 size-3 shrink-0 text-[color:var(--color-signal)]" />
+          <span>
+            {stream.webrtcAudio
+              ? "Son de la caméra inclus : ffmpeg encode l'Opus directement avec l'image, en une seule passe."
+              : stream.webrtcReady
+                ? "Aucune piste audio sur la sortie : vérifiez que le son n'est pas coupé à la source."
+                : stream.incoming.ready
+                  ? incomingAudio
+                    ? "Encodeur audio en cours de démarrage…"
+                    : "La source n'envoie aucune piste audio."
+                  : "En attente du flux source…"}
+          </span>
+        </div>
+
         <div className="mt-2.5 space-y-1.5">
-          <PathRow label="Caméra → MediaMTX" path={stream.incoming} />
-          {stream.transcode && <PathRow label="ffmpeg → H.264" path={stream.outgoing} />}
+          <PathRow label="Source → MediaMTX" path={stream.incoming} />
+          <PathRow label="ffmpeg → WebRTC" path={stream.webrtc} />
         </div>
 
-        <div className="mt-2.5 rounded-xl border border-border bg-muted/40 px-2.5 py-2">
-          <p className="text-[10px] font-semibold text-muted-foreground">
-            Source à saisir dans DJI Relay
+        {stream.encoderErr && (
+          <p className="mt-2 rounded-lg bg-destructive/10 px-2 py-1.5 text-[10.5px] leading-snug text-destructive">
+            {stream.encoderErr}
           </p>
-          <p className="mt-1 select-all break-all font-mono text-[10px] text-foreground">
-            {stream.directURL}
-          </p>
-          <p className="mt-1 text-[10px] leading-snug text-muted-foreground">
-            Le téléphone publie sur cette URL. Si la conversion est activée, l’URL OBS ci-dessus
-            utilise séparément <span className="font-mono text-foreground">live/dji-h264</span>.
-          </p>
-          <p className="mt-1.5 border-t border-border pt-1.5 text-[10px] leading-snug text-muted-foreground">
-            <span className="font-semibold text-foreground">Latence</span> — dans OBS, propriétés
-            de la source média : tampon réseau à 0 Mo et « Reconnecter » activé.
-          </p>
-        </div>
+        )}
 
-        {stream.transcode && !stream.incoming.ready && stream.outgoing.ready && (
+        {!snapshot.environment.ffmpegReady && (
           <p className="mt-2 rounded-lg bg-[color:var(--color-warning)]/10 px-2 py-1.5 text-[10.5px] leading-snug text-[color:var(--color-warning)]">
-            Le flux est actif sur la sortie H.264 mais aucune source n’arrive sur{" "}
-            <span className="font-mono">live/dji</span>. Dans DJI Relay, remplacez le chemin par{" "}
-            <span className="font-mono">live/dji</span> : <span className="font-mono">live/dji-h264</span>{" "}
-            est réservé à la sortie vers OBS.
+            ffmpeg absent : installez-le (apt install ffmpeg). Sans lui, WebRTC ne peut
+            pas recevoir l'audio Opus.
+          </p>
+        )}
+
+        {stream.incoming.ready && !stream.webrtcReady && snapshot.environment.ffmpegReady && (
+          <p className="mt-2 text-[10.5px] text-muted-foreground">
+            ffmpeg prépare la copie WebRTC (H.264 + Opus)…
           </p>
         )}
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-3.5 card-raised">
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
             <h2 className="flex items-center gap-1.5 text-[12px] font-bold tracking-tight">
-              <Zap className="size-3.5 text-[color:var(--color-signal)]" />
-              Convertir en H.264
+              <Radio className="size-3.5 text-[color:var(--color-signal)]" />
+              Source RTMP
             </h2>
-            <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-              Republie la scène sur <span className="font-mono text-foreground">live/dji-h264</span>{" "}
-              avec des timestamps assainis : c'est l'URL à donner à OBS (évite les
-              images figées).
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Entrée à saisir dans DJI Relay ou sur la caméra
             </p>
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={stream.transcode}
-            aria-label="Convertir en H.264"
-            disabled={transcodeMutation.isPending || !snapshot.environment.ffmpegReady}
-            onClick={() => transcodeMutation.mutate(!stream.transcode)}
-            className={cn(
-              "relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition-colors",
-              stream.transcode
-                ? "border-[color:var(--color-signal)]/40 bg-[color:var(--color-signal)]"
-                : "border-input bg-muted",
-              (transcodeMutation.isPending || !snapshot.environment.ffmpegReady) &&
-                "cursor-not-allowed opacity-50",
-            )}
-          >
-            <span
-              className={cn(
-                "absolute top-[3px] size-[16px] rounded-full bg-white shadow-sm transition-all",
-                stream.transcode ? "left-[24px]" : "left-[3px]",
-              )}
-            />
-          </button>
+          <Badge variant="outline" className="h-5 shrink-0 px-1.5 font-mono text-[8.5px]">
+            :{stream.rtmpPort}
+          </Badge>
         </div>
 
-        {!stream.transcode && (stream.incoming.codecs ?? []).includes("H265") && (
-          <p className="mt-2 rounded-lg bg-[color:var(--color-volt)]/25 px-2 py-1.5 text-[10.5px] leading-snug text-[#3f4a1a]">
-            La caméra émet en HEVC (H.265). Si OBS n'affiche rien, activez la conversion.
+        <div className="mt-2.5 rounded-xl bg-[color:var(--color-ink)] p-2.5">
+          <p className="select-all break-all font-mono text-[10.5px] leading-relaxed text-[color:var(--color-volt)]">
+            {stream.directURL}
           </p>
-        )}
-        {!stream.transcode &&
-          stream.incoming.ready &&
-          (stream.incoming.codecs ?? []).includes("H264") && (
-            <div className="mt-2 rounded-lg bg-[color:var(--color-warning)]/10 px-2 py-2 text-[10.5px] leading-snug text-[color:var(--color-warning)]">
-              <p>
-                Le relais Android peut envoyer des timestamps incorrects : en lecture directe,
-                OBS peut afficher une image en retard ou se figer. Activez la republication
-                horodatée, puis utilisez l’URL OBS <span className="font-mono">live/dji-h264</span>.
-              </p>
-              <Button
-                size="sm"
-                variant="outline"
-                className="mt-2 h-7 bg-card text-foreground"
-                disabled={transcodeMutation.isPending || !snapshot.environment.ffmpegReady}
-                onClick={() => transcodeMutation.mutate(true)}
-              >
-                Activer la sortie H.264 pour OBS
-              </Button>
-            </div>
-          )}
-        {!snapshot.environment.ffmpegReady && (
-          <p className="mt-2 rounded-lg bg-[color:var(--color-warning)]/10 px-2 py-1.5 text-[10.5px] leading-snug text-[color:var(--color-warning)]">
-            ffmpeg absent : installez-le (apt install ffmpeg) pour activer la conversion.
-          </p>
-        )}
-        {stream.transcode && stream.transcodeErr && (
-          <p className="mt-2 rounded-lg bg-destructive/10 px-2 py-1.5 text-[10.5px] leading-snug text-destructive">
-            {stream.transcodeErr}
-          </p>
-        )}
-        {stream.transcode && !stream.outgoing.ready && snapshot.stream.incoming.ready && (
-          <p className="mt-2 text-[10.5px] text-muted-foreground">
-            ffmpeg démarre le transcodage…
-          </p>
-        )}
+        </div>
+        <div className="mt-2 flex items-center gap-1.5">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 flex-1 bg-white"
+            onClick={() => void onCopy("ingest", stream.directURL)}
+          >
+            {copiedKey === "ingest" ? <Check /> : <Copy />}
+            {copiedKey === "ingest" ? "Copié" : "Copier l'URL d'entrée"}
+          </Button>
+        </div>
+        <p className="mt-2 text-[10px] leading-snug text-muted-foreground">
+          La caméra (ou le téléphone) pousse vers cette URL. WebRTC est produite à partir
+          de ce flux : RTMP ne sert plus de sortie de lecture.
+        </p>
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-3.5 card-raised">
@@ -246,9 +240,14 @@ export function StreamPanel({ snapshot }: { snapshot: Snapshot }) {
                   : "text-muted-foreground",
               )}
             />
-            <span className="truncate text-[12px] font-bold tracking-tight">Serveur MediaMTX</span>
+            <span className="truncate text-[12px] font-bold tracking-tight">
+              Serveur MediaMTX
+            </span>
             <Badge variant="outline" className="h-4 shrink-0 px-1 font-mono text-[8.5px]">
-              :{snapshot.server.rtmpPort}
+              RTMP :{snapshot.server.rtmpPort}
+            </Badge>
+            <Badge variant="outline" className="h-4 shrink-0 px-1 font-mono text-[8.5px]">
+              WebRTC :{stream.webrtcPort}
             </Badge>
           </div>
           <Button
@@ -271,8 +270,8 @@ export function StreamPanel({ snapshot }: { snapshot: Snapshot }) {
 
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
           {snapshot.server.running
-            ? "Le serveur écoute et attend la caméra. OBS peut ouvrir l'URL à tout moment."
-            : "Démarrez le serveur avant de connecter la caméra : c'est sa cible RTMP."}
+            ? "Le serveur écoute l'entrée RTMP et publie la sortie WebRTC."
+            : "Démarrez le serveur avant de connecter la caméra ou le relais."}
         </p>
 
         {(error || snapshot.server.err) && (

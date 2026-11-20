@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Construit le binaire Wails puis l'empaquette en .deb installable.
 #
-#   ./scripts/build-deb.sh            # version 0.1.0
-#   VERSION=0.2.0 ./scripts/build-deb.sh
+#   ./scripts/build-deb.sh            # version 0.2.0
+#   VERSION=0.3.0 ./scripts/build-deb.sh
 #
 # Produit dist/dji-caster_<version>_<arch>.deb et en copie une dans
 # landing/downloads/ pour le site.
@@ -11,7 +11,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-VERSION="${VERSION:-0.1.0}"
+VERSION="${VERSION:-0.2.0}"
 PKG="dji-caster"
 ARCH="$(dpkg --print-architecture 2>/dev/null || echo amd64)"
 STAGE="$ROOT/dist/deb"
@@ -40,13 +40,13 @@ cat > "$STAGE/usr/share/applications/${PKG}.desktop" <<'DESKTOP'
 [Desktop Entry]
 Type=Application
 Name=DJI Caster
-GenericName=RTMP bridge for DJI cameras
-Comment=Connecte une caméra DJI en Bluetooth et expose son flux RTMP pour OBS
+GenericName=RTMP to WebRTC bridge for DJI cameras
+Comment=Reçoit le flux RTMP d'une caméra DJI et le publie en WebRTC
 Exec=dji-caster
 Icon=dji-caster
 Terminal=false
 Categories=AudioVideo;Video;Network;Utility;
-Keywords=dji;rtmp;obs;stream;bluetooth;
+Keywords=dji;rtmp;webrtc;stream;
 StartupNotify=true
 DESKTOP
 
@@ -59,30 +59,16 @@ Section: video
 Priority: optional
 Architecture: ${ARCH}
 Installed-Size: ${INSTALLED_KB}
-Depends: libgtk-3-0t64 | libgtk-3-0, libwebkit2gtk-4.1-0, bluez
-Recommends: ffmpeg, obs-studio
+Depends: libgtk-3-0t64 | libgtk-3-0, libwebkit2gtk-4.1-0
+Recommends: ffmpeg
 Maintainer: Mizael-go <pagielamizael@gmail.com>
 Homepage: https://github.com/Mizael-go/dji-caster
-Description: Passerelle RTMP pour caméras DJI
- Application desktop qui scanne les caméras DJI en Bluetooth Low Energy,
- leur ordonne de rejoindre le Wi-Fi de la machine puis expose leur flux
- RTMP pour OBS. MediaMTX est téléchargé dans le dossier de l'utilisateur
- au premier lancement, avec une conversion H.265 vers H.264 optionnelle.
+Description: Passerelle RTMP vers WebRTC pour caméras DJI
+ Application desktop qui reçoit le flux RTMP d'une caméra DJI (ou du
+ relais Android) et le publie en WebRTC, la sortie de lecture à la plus
+ basse latence. MediaMTX est téléchargé dans le dossier de l'utilisateur
+ au premier lancement ; ffmpeg encode la vidéo H.264 et l'audio Opus.
 CONTROL
-
-# Script post-installation : affiche le rappel rfkill sans rien modifier.
-cat > "$STAGE/DEBIAN/postinst" <<'POSTINST'
-#!/bin/sh
-set -e
-if command -v rfkill >/dev/null 2>&1; then
-  if rfkill list bluetooth 2>/dev/null | grep -q "Soft blocked: yes"; then
-    echo "DJI Caster : la radio Bluetooth est bloquée par rfkill."
-    echo "             lancez une fois : sudo rfkill unblock bluetooth"
-  fi
-fi
-exit 0
-POSTINST
-chmod 0755 "$STAGE/DEBIAN/postinst"
 
 echo "▸ Construction du paquet"
 mkdir -p "$ROOT/dist"

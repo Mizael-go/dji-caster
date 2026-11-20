@@ -34,3 +34,21 @@ func TestTranscodeArgsNoInputFramerate(t *testing.T) {
 		t.Fatal("-r attendu en sortie")
 	}
 }
+
+func TestTranscodeArgsEncodeOpusForWebrtc(t *testing.T) {
+	args := strings.Join(transcodeArgs("rtsp://in", "rtmp://out"), " ")
+	// Une seule passe : la vidéo et l'audio sont réencodés ensemble, l'audio
+	// Opus part directement de la source (pas de copie AAC intermédiaire).
+	for _, want := range []string{
+		"-c:v libx264",
+		"-c:a libopus",
+		"-b:a 160k",
+		"-ar 48000",
+		"-application audio",
+		"-frame_duration 20",
+	} {
+		if !strings.Contains(args, want) {
+			t.Errorf("argument manquant pour WebRTC : %q dans %q", want, args)
+		}
+	}
+}

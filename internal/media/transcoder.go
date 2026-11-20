@@ -13,9 +13,13 @@ import (
 	"time"
 )
 
-// Transcoder republishes the camera stream as H.264 so OBS can consume it even
-// when the DJI only offers HEVC. ffmpeg is supervised: it is restarted while
-// enabled and the input is not ready yet.
+// Transcoder builds the WebRTC copy of the incoming stream.
+//
+// WebRTC only carries H.264 video and Opus/G722/G711 audio. The camera (and
+// the Android relay) push AAC audio, which a browser silently drops, and may
+// push H.265. A single ffmpeg process therefore reads the source once and
+// re-encodes both tracks directly (no intermediate AAC copy), which keeps the
+// audio quality intact and adds only one frame of latency.
 type Transcoder struct {
 	mu      sync.Mutex
 	binary  string
@@ -84,7 +88,7 @@ func (t *Transcoder) Stop() {
 }
 
 func (t *Transcoder) supervise(ctx context.Context, output, input string) {
-	t.logf("Republication H.264 activée (re-timestamping + transcodage)")
+	t.logf("Encodeur WebRTC démarré (H.264 + Opus)")
 	for {
 		if ctx.Err() != nil {
 			return
@@ -204,8 +208,8 @@ func transcodeArgs(input, output string) []string {
 		"-flags", "low_delay",
 		// Les timestamps du flux source (caméra DJI ou relais Android) sont
 		// cassés : DTS égaux/répétés et audio démarrant avant la vidéo. Sans
-		// restampage, OBS gèle sur les DTS non monotones. L'horloge murale
-		// donne des timestamps monotones et recale l'A/V à l'arrivée des
+		// restampage, le lecteur gèle sur les DTS non monotones. L'horloge
+		// murale donne des timestamps monotones et recale l'A/V à l'arrivée des
 		// paquets, quel que soit le décalage initial de la source.
 		"-use_wallclock_as_timestamps", "1",
 		// +genpts complète les pts manquants ; avec l'horloge murale il ne
@@ -237,7 +241,13 @@ func transcodeArgs(input, output string) []string {
 		"-keyint_min", "30",
 		"-sc_threshold", "0",
 		"-bf", "0",
-		"-x264-params", "rc-lookahead=0:sync-lookahead=0",
+		// repeat-headers : SPS/PPS dans le flux, indispensables à un lecteur
+		// WebRTC qui rejoint en cours de diffusion (sinon il n'a pas la
+		// séquence de décodage et reste noir).
+		"-x264-params", "rc-lookahead=0:sync-lookahead=0:repeat-headers=1:keyint=30:min-keyint=30:scenecut=0",
+		// Keyframe forcée toutes les secondes même si la cadence d'entrée
+		// dérive : un lecteur WebRTC qui rejoint attend une IDR.
+		"-force_key_frames", "expr:gte(t,n_forced*1)",
 		"-b:v", "6M",
 		"-maxrate", "6M",
 		"-bufsize", "6M",
@@ -247,23 +257,39 @@ func transcodeArgs(input, output string) []string {
 		// sortie fixe aussi le framerate vu par x264 (sinon ~90 000 fps).
 		"-r", "30",
 		"-fps_mode", "cfr",
-		"-c:a", "aac",
-		"-b:a", "128k",
-		"-ar", "44100",
+		// Audio : Opus est le seul codec transmis par WebRTC. On l'encode
+		// directement depuis la source (et non depuis une copie AAC
+		// intermédiaire) : l'AAC→Opus en deux passes était la cause du son
+		// dégradé. 48 kHz stéréo, 160 kb/s, profil « audio » (meilleure
+		// qualité que « lowdelay » à ce débit), trames de 20 ms (défaut WebRTC).
+		"-c:a", "libopus",
+		"-b:a", "160k",
+		"-ar", "48000",
+		"-ac", "2",
+		"-application", "audio",
+		"-frame_duration", "20",
 		// async=1 rattrape les trous/chevauchements de l'audio source en
 		// insérant du silence ou en supprimant des échantillons. Sans
 		// first_pts=0 : avec l'horloge murale, forcer l'audio à 0 pendant que
 		// la vidéo part sur l'horloge système crée un décalage A/V énorme.
 		"-af", "aresample=async=1",
-		// Écriture immédiate des paquets : sans ça, le muxer FLV peut garder
-		// une vidéo en tampon, ce qui ajoute de la latence côté OBS.
+		// Écriture immédiate des paquets : le muxer FLV ne doit rien tamponner,
+		// sinon la latence WebRTC augmente.
 		"-flush_packets", "1",
+		"-muxdelay", "0",
+		"-muxpreload", "0",
 		"-f", "flv",
 		output,
 	}
 }
 
-// RtmpURL builds the URL handed to the camera or pasted into OBS.
+// WebrtcURL is MediaMTX's built-in player page: it negotiates WHEP in the
+// browser and needs no extra client.
+func WebrtcURL(host string, port int, path string) string {
+	return "http://" + host + ":" + strconv.Itoa(port) + "/" + strings.TrimPrefix(path, "/")
+}
+
+// RtmpURL builds the ingest URL handed to the camera or the Android relay.
 func RtmpURL(host string, port int, path string) string {
 	return "rtmp://" + host + ":" + strconv.Itoa(port) + "/" + strings.TrimPrefix(path, "/")
 }

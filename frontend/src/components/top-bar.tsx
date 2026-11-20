@@ -1,7 +1,7 @@
 import { Settings as SettingsIcon } from "lucide-react"
 import { Button } from "~/components/ui/button"
 import { cn } from "~/lib/utils"
-import type { SessionState, Snapshot } from "~/lib/types"
+import type { Snapshot } from "~/lib/types"
 
 export function BrandMark({ className }: { className?: string }) {
   return (
@@ -18,37 +18,6 @@ export function BrandMark({ className }: { className?: string }) {
   )
 }
 
-const STATE_STYLES: Record<
-  SessionState,
-  { label: string; className: string; dot: string }
-> = {
-  idle: {
-    label: "PRÊT",
-    className: "text-muted-foreground",
-    dot: "bg-muted-foreground/40",
-  },
-  starting: {
-    label: "CONNEXION",
-    className: "text-[color:var(--color-warning)]",
-    dot: "bg-[color:var(--color-warning)] animate-pulse",
-  },
-  waiting: {
-    label: "EN ATTENTE",
-    className: "text-[color:var(--color-warning)]",
-    dot: "bg-[color:var(--color-warning)] animate-pulse",
-  },
-  live: {
-    label: "DIRECT",
-    className: "text-[color:var(--color-live)]",
-    dot: "bg-[color:var(--color-live)] live-dot",
-  },
-  error: {
-    label: "ERREUR",
-    className: "text-destructive",
-    dot: "bg-destructive",
-  },
-}
-
 export function TopBar({
   snapshot,
   onOpenSettings,
@@ -56,9 +25,15 @@ export function TopBar({
   snapshot: Snapshot
   onOpenSettings: () => void
 }) {
-  const state = STATE_STYLES[snapshot.session.state] ?? STATE_STYLES.idle
-  const subtitle = snapshot.server.running
-    ? `${snapshot.environment.localIP}:${snapshot.server.rtmpPort}`
+  const live = snapshot.stream.webrtcReady
+  const running = snapshot.server.running
+  const state = live
+    ? { label: "DIRECT", className: "text-[color:var(--color-live)]", dot: "bg-[color:var(--color-live)] live-dot" }
+    : running
+      ? { label: "PRÊT", className: "text-muted-foreground", dot: "bg-muted-foreground/40" }
+      : { label: "ARRÊTÉ", className: "text-destructive", dot: "bg-destructive" }
+  const subtitle = running
+    ? `${snapshot.environment.localIP}:${snapshot.server.rtmpPort} → WebRTC :${snapshot.stream.webrtcPort}`
     : "serveur arrêté"
 
   return (

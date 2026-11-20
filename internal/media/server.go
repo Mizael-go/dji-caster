@@ -17,25 +17,34 @@ import (
 	"time"
 )
 
-// Paths published on the local MediaMTX. The DJI always pushes to PathIn; when
-// transcoding is enabled ffmpeg republishes an H.264 copy on PathOut so OBS
-// never has to decode the camera's HEVC stream.
+// Paths published on the local MediaMTX. The camera (or the Android relay)
+// pushes to PathIn; ffmpeg republishes H.264 + Opus on PathWebrtc, the only
+// path browsers read.
 const (
-	PathIn  = "live/dji"
-	PathOut = "live/dji-h264"
+	PathIn = "live/dji"
 
-	// RtspPort is the loopback-only RTSP listener. MediaMTX does not forward
-	// H.265 to plain RTMP readers, so ffmpeg reads the camera stream over RTSP
-	// (H.265 supported natively) and republishes H.264 over RTMP.
+	// PathWebrtc is the path read by browsers. WebRTC only carries Opus, G722
+	// or G711 audio, so the camera's AAC cannot be passed through: ffmpeg
+	// re-encodes both video and audio once, directly from the source.
+	PathWebrtc = "live/dji-webrtc"
+
+	// RtspPort is the loopback-only RTSP listener. ffmpeg reads the source
+	// there (H.265 supported natively, unlike RTMP readers) and publishes the
+	// WebRTC copy over RTMP.
 	RtspPort = 8554
+
+	// WebRTC is the only playback output. The HTTP port serves the WHEP page,
+	// the UDP port carries the media.
+	WebrtcPort    = 8889
+	WebrtcUDPPort = 8189
 )
 
 type ServerConfig struct {
-	Binary    string
-	Dir       string
-	RtmpPort  int
-	ApiPort   int
-	Logf      func(string)
+	Binary   string
+	Dir      string
+	RtmpPort int
+	ApiPort  int
+	Logf     func(string)
 }
 
 type PathStat struct {
@@ -84,19 +93,42 @@ func (s *Server) writeConfig() (string, error) {
 	cfg := fmt.Sprintf(`# Généré par DJI Caster — ne pas éditer à la main.
 logLevel: info
 logDestinations: [stdout]
-readTimeout: 15s
-writeTimeout: 15s
 
-# RTMP est le protocole exposé (le DJI pousse, OBS lit).
-# RTSP n'écoute qu'en loopback : c'est par là que ffmpeg lit le H.265.
+# Timeouts courts : seule la machine locale lit le flux, un pair muet doit
+# être coupé vite au lieu de retenir les paquets (défaut MediaMTX : 2s).
+# readTimeout mesuré : 2s coupe le publieur RTMP pendant sa négociation
+# (i/o timeout, ffmpeg n'arrive jamais à publier), 3s passe tout juste, 4s est
+# retenu pour garder une marge. writeTimeout 1s évince un lecteur muet plus vite.
+readTimeout: 4s
+writeTimeout: 1s
+writeQueueSize: 128
+
+# RTMP est le seul protocole d'entrée (caméra ou relais Android).
+# RTSP n'écoute qu'en loopback : c'est par là que ffmpeg lit la source.
 rtsp: yes
 rtspAddress: 127.0.0.1:%d
-hls: no
-webrtc: no
-srt: no
 rtmp: yes
 rtmpAddress: :%d
 rtmpEncryption: "no"
+
+# Pas de HLS : la seule sortie de lecture est WebRTC, plus rapide.
+hls: no
+srt: no
+
+# WebRTC : seule sortie. UDP 8189 porte les médias ; l'HTTP 8889 sert la page
+# de lecture et le WHEP.
+webrtc: yes
+webrtcAddress: :%d
+webrtcEncryption: no
+webrtcAllowOrigins: ['*']
+webrtcLocalUDPAddress: :%d
+webrtcLocalTCPAddress: ''
+webrtcIPsFromInterfaces: yes
+webrtcHandshakeTimeout: 3s
+webrtcTrackGatherTimeout: 1s
+
+# MoQ ouvrirait 8892/8893 et générerait un certificat : inutile ici.
+moq: no
 
 # API locale utilisée par l'app pour savoir si un flux est réellement reçu.
 api: yes
@@ -104,7 +136,7 @@ apiAddress: 127.0.0.1:%d
 
 paths:
   all_others:
-`, RtspPort, s.cfg.RtmpPort, s.cfg.ApiPort)
+`, RtspPort, s.cfg.RtmpPort, WebrtcPort, WebrtcUDPPort, s.cfg.ApiPort)
 
 	path := ConfigPath(s.cfg.Dir)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -126,7 +158,12 @@ func (s *Server) Start() error {
 		return fmt.Errorf("MediaMTX n'est pas installé")
 	}
 	if portFree(s.cfg.RtmpPort) == false {
-		return fmt.Errorf("le port RTMP %d est déjà utilisé (autre MediaMTX ou OBS ?)", s.cfg.RtmpPort)
+		return fmt.Errorf("le port RTMP %d est déjà utilisé (autre MediaMTX ?)", s.cfg.RtmpPort)
+	}
+	// WebRTC est activé en permanence : si son port HTTP est pris, MediaMTX
+	// refuse de démarrer. Autant le dire clairement.
+	if !portFree(WebrtcPort) {
+		return fmt.Errorf("le port WebRTC %d est déjà utilisé : libérez-le pour activer la sortie", WebrtcPort)
 	}
 
 	cfgPath, err := s.writeConfig()
@@ -258,6 +295,24 @@ func (s *Server) Paths(ctx context.Context) (map[string]PathStat, error) {
 		}
 	}
 	return out, nil
+}
+
+// HasAudio reports whether a path carries an audio track. MediaMTX names
+// tracks after their codec ("H264", "Opus", "MPEG-4 Audio"…), so any track
+// that is not a known video codec is audio.
+func HasAudio(tracks []string) bool {
+	for _, t := range tracks {
+		switch {
+		case strings.HasPrefix(t, "H264"), strings.HasPrefix(t, "H265"),
+			strings.HasPrefix(t, "AV1"), strings.HasPrefix(t, "VP8"),
+			strings.HasPrefix(t, "VP9"), strings.HasPrefix(t, "MPEG-4 Video"),
+			strings.HasPrefix(t, "MPEG-1/2 Video"), strings.HasPrefix(t, "M-JPEG"):
+			continue
+		default:
+			return true
+		}
+	}
+	return false
 }
 
 func pipeLines(r interface{ Read([]byte) (int, error) }, logf func(string)) {

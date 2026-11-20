@@ -1,7 +1,6 @@
-// Package bins locates, downloads or builds the external tools the app drives:
-// MediaMTX (RTMP ingest server) and djictl (DJI BLE control).
-// Everything is kept inside the app data dir so the app never relies on a
-// system-wide MediaMTX install.
+// Package bins locates and downloads the external tools the app drives.
+// MediaMTX is kept inside the app data dir so the app never relies on a
+// system-wide install.
 package bins
 
 import (
@@ -48,13 +47,6 @@ func MediaMtxName() string {
 		return "mediamtx.exe"
 	}
 	return "mediamtx"
-}
-
-func DjiCtlName() string {
-	if runtime.GOOS == "windows" {
-		return "djictl.exe"
-	}
-	return "djictl"
 }
 
 // EnsureMediaMtx downloads the latest MediaMTX release into binDir when the
@@ -106,38 +98,6 @@ func EnsureMediaMtx(ctx context.Context, binDir string, logf func(string)) (stri
 		return "", err
 	}
 	logf("MediaMTX " + version + " installé")
-	return dest, nil
-}
-
-// EnsureDjictl builds djictl from source with the local Go toolchain, because
-// upstream does not publish release binaries.
-func EnsureDjictl(ctx context.Context, binDir string, logf func(string)) (string, error) {
-	dest := filepath.Join(binDir, DjiCtlName())
-	if filepath.IsAbs(dest) {
-		if st, err := os.Stat(dest); err == nil && !st.IsDir() {
-			return dest, nil
-		}
-	}
-	goBin := LookPath("go")
-	if goBin == "" {
-		return "", fmt.Errorf("Go n'est pas installé : impossible de compiler djictl (installez go puis réessayez)")
-	}
-	logf("Compilation de djictl avec " + goBin)
-	cmd := exec.CommandContext(ctx, goBin, "install", "github.com/xaionaro-go/djictl/cmd/djictl@latest")
-	cmd.Env = append(os.Environ(), "GOBIN="+binDir, "CGO_ENABLED=0")
-	out, err := cmd.CombinedOutput()
-	for _, line := range strings.Split(strings.TrimRight(string(out), "\n"), "\n") {
-		if strings.TrimSpace(line) != "" {
-			logf(line)
-		}
-	}
-	if err != nil {
-		return "", fmt.Errorf("compilation de djictl : %w", err)
-	}
-	if _, err := os.Stat(dest); err != nil {
-		return "", fmt.Errorf("djictl compilé mais introuvable dans %s", binDir)
-	}
-	logf("djictl installé")
 	return dest, nil
 }
 

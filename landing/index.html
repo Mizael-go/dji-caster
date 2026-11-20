@@ -3,19 +3,19 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>DJI Caster — le flux du DJI, direct dans OBS</title>
+    <title>DJI Caster — le flux du DJI, direct en WebRTC</title>
     <meta
       name="description"
-      content="DJI Caster scanne les caméras DJI en Bluetooth, les connecte à votre Wi-Fi et expose leur flux RTMP pour OBS. MediaMTX inclus, conversion H.265 vers H.264 optionnelle, tout reste sur votre machine."
+      content="DJI Caster reçoit le flux RTMP d'une caméra DJI ou du relais Android et le publie en WebRTC, la sortie la plus rapide. Vidéo H.264 et audio Opus, MediaMTX inclus, tout reste sur votre machine."
     />
     <meta name="theme-color" content="#0a0b0d" />
     <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
     <link rel="preload" href="./assets/sora.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="./styles.css" />
-    <meta property="og:title" content="DJI Caster — le flux du DJI, direct dans OBS" />
+    <meta property="og:title" content="DJI Caster — le flux du DJI, direct en WebRTC" />
     <meta
       property="og:description"
-      content="Scan Bluetooth, Wi-Fi forcé, sortie RTMP. Une app desktop de 420 px qui remplace DJI MIMO pour la diffusion."
+      content="Entrée RTMP, sortie WebRTC. Une app desktop de 420 px, sans cloud, pour voir la caméra avec ~0,2–0,5 s de latence."
     />
     <meta property="og:type" content="website" />
   </head>
@@ -36,7 +36,7 @@
           </svg>
           <span>
             DJI Caster
-            <small>pont RTMP local</small>
+            <small>RTMP → WebRTC local</small>
           </span>
         </a>
         <nav class="nav" aria-label="Sections">
@@ -54,14 +54,15 @@
         <div class="shell hero-grid">
           <div class="hero-copy">
             <p class="eyebrow eyebrow--accent">Linux · app desktop · zéro cloud</p>
-            <h1>Le flux du DJI,<br /><span>direct dans OBS.</span></h1>
+            <h1>Le flux du DJI,<br /><span>direct en WebRTC.</span></h1>
             <p class="lede">
-              Une fenêtre de la taille d'une source mobile : scan Bluetooth, la
-              caméra rejoint votre Wi-Fi, son RTMP arrive sur votre machine.
-              Une URL à coller dans OBS, et c'est en direct.
+              Une fenêtre de la taille d'une source mobile : la caméra (ou le
+              relais Android) pousse son RTMP sur votre machine, l'app encode
+              H.264 + Opus et publie une page WebRTC à ouvrir dans le
+              navigateur. La latence descend à ~0,2–0,5 s.
             </p>
             <div class="hero-actions">
-              <a class="btn btn--accent" href="./downloads/dji-caster_0.1.1_amd64.deb" download>
+              <a class="btn btn--accent" href="./downloads/dji-caster_0.2.0_amd64.deb" download>
                 Télécharger le .deb
               </a>
               <a class="btn btn--ghost" href="#pipeline">Comprendre le flux</a>
@@ -77,52 +78,38 @@
               <span class="app-logo" aria-hidden="true"></span>
               <div class="app-title">
                 <strong>DJI Caster</strong>
-                <span>192.168.1.42:1935 · 15 appareils</span>
+                <span>192.168.1.42:1935 → WebRTC :8889</span>
               </div>
               <span class="app-state"><i></i>EN DIRECT</span>
             </div>
             <div class="app-body">
               <div class="app-card">
                 <div class="app-card-head">
-                  <span>À portée</span>
-                  <span class="app-pill">Scanner</span>
+                  <span>Sortie WebRTC</span>
+                  <span class="app-live">flux actif</span>
                 </div>
-                <ul class="app-devices">
-                  <li class="is-selected">
-                    <span class="app-dot app-dot--dji"></span>
-                    <span class="app-dev-name">Osmo Action 4</span>
-                    <span class="app-tag">DJI</span>
-                    <span class="app-rssi">-58</span>
-                  </li>
-                  <li>
-                    <span class="app-dot"></span>
-                    <span class="app-dev-name">DJI RS 3 Mini</span>
-                    <span class="app-tag">DJI</span>
-                    <span class="app-rssi">-71</span>
-                  </li>
-                  <li>
-                    <span class="app-dot"></span>
-                    <span class="app-dev-name">AirPods Pro</span>
-                    <span class="app-rssi">-64</span>
-                  </li>
-                </ul>
+                <code class="app-url">http://192.168.1.42:8889/live/dji-webrtc</code>
+                <div class="app-url-foot">
+                  <span>Réseau · 192.168.1.42</span>
+                  <span class="app-copy">Ouvrir</span>
+                </div>
               </div>
 
               <div class="app-card">
                 <div class="app-card-head">
-                  <span>Sortie RTMP</span>
-                  <span class="app-live">flux actif</span>
+                  <span>Source RTMP</span>
+                  <span class="app-pill">:1935</span>
                 </div>
-                <code class="app-url">rtmp://192.168.1.42:1935/live/dji-h264</code>
+                <code class="app-url">rtmp://192.168.1.42:1935/live/dji</code>
                 <div class="app-url-foot">
-                  <span>Réseau · 192.168.1.42</span>
+                  <span>Entrée DJI Relay / caméra</span>
                   <span class="app-copy">Copier</span>
                 </div>
               </div>
 
               <div class="app-stats">
-                <div><span>Caméra → MediaMTX</span><b>HEVC · 14 Mo</b></div>
-                <div><span>ffmpeg → H.264</span><b>H.264 · 9 Mo</b></div>
+                <div><span>Source → MediaMTX</span><b>H.264 · AAC</b></div>
+                <div><span>ffmpeg → WebRTC</span><b>H.264 · Opus</b></div>
               </div>
             </div>
           </div>
@@ -134,10 +121,11 @@
           <div class="section-head">
             <div>
               <p class="eyebrow">Le trajet du signal</p>
-              <h2>Trois sauts, aucune application DJI</h2>
+              <h2>Trois sauts, aucun cloud</h2>
               <p>
-                La caméra n'est jamais pilotée par le cloud : tout se joue entre
-                son Bluetooth, votre réseau local et le serveur embarqué.
+                La caméra n'est jamais pilotée par un service distant : tout se
+                joue entre le relais qui pousse le RTMP, votre réseau local et le
+                serveur embarqué.
               </p>
             </div>
           </div>
@@ -145,33 +133,33 @@
           <ol class="pipeline">
             <li>
               <p class="num">01</p>
-              <h3>Scan Bluetooth</h3>
+              <h3>Entrée RTMP</h3>
               <p>
-                Lecture directe de BlueZ : les appareils à portée apparaissent en
-                une seconde, les caméras DJI remontent en tête avec leur niveau
-                de signal.
+                La caméra (déjà sur le Wi-Fi) ou le relais Android pousse son
+                flux sur la machine. MediaMTX l'accueille sur un seul chemin,
+                sans compte ni configuration serveur.
               </p>
-              <code>org.bluez · D-Bus · LE</code>
+              <code>rtmp://…:1935/live/dji</code>
             </li>
             <li>
               <p class="num">02</p>
-              <h3>Wi-Fi forcé</h3>
+              <h3>Encodage H.264 + Opus</h3>
               <p>
-                <span class="mono">djictl</span> envoie à la caméra les
-                identifiants de votre réseau et l'ordre de pousser vers votre
-                machine. Plus besoin de DJI MIMO ni de routeur dédié.
+                Un seul ffmpeg lit la source en RTSP loopback et réencode la
+                vidéo et l'audio en une passe. Plus de copie AAC intermédiaire :
+                le son Opus part directement de la source.
               </p>
-              <code>BLE → Wi-Fi 2,4 GHz</code>
+              <code>ffmpeg · libx264 · libopus</code>
             </li>
             <li>
               <p class="num">03</p>
-              <h3>Sortie RTMP</h3>
+              <h3>Lecture WebRTC</h3>
               <p>
-                MediaMTX reçoit le flux et l'expose en RTMP. Si OBS refuse le
-                HEVC de la caméra, un ffmpeg supervisé republie la même scène en
-                H.264.
+                MediaMTX publie une page WHEP que n'importe quel navigateur peut
+                ouvrir. C'est la seule sortie, et la plus rapide : ~0,2–0,5 s de
+                latence sur le réseau local.
               </p>
-              <code>rtmp://…/live/dji-h264</code>
+              <code>http://…:8889/live/dji-webrtc</code>
             </li>
           </ol>
         </div>
@@ -185,7 +173,7 @@
               <h2>Un régisseur de poche</h2>
               <p>
                 Pensée pour être ouverte cinq minutes avant le direct, sur le
-                poste qui fait tourner OBS.
+                poste qui sert de régie.
               </p>
             </div>
           </div>
@@ -193,37 +181,38 @@
           <div class="grid grid--3">
             <article class="card">
               <p class="num">01</p>
-              <h3>Scan BLE natif</h3>
+              <h3>Une seule entrée RTMP</h3>
               <p>
-                BlueZ interrogé en D-Bus, sans parser la sortie d'un terminal.
-                RSSI, nom, état d'appairage : la liste est lisible d'un coup
-                d'œil.
+                Caméra DJI ou relais Android : une URL d'entrée suffit. Plus de
+                scan ni de forçage Bluetooth, l'app reste un pur pont local
+                RTMP → WebRTC.
               </p>
             </article>
             <article class="card">
               <p class="num">02</p>
-              <h3>Réseaux mémorisés</h3>
+              <h3>H.264 + Opus en une passe</h3>
               <p>
-                Chaque connexion enregistre le SSID et le mot de passe. Les
-                profils se choisissent dans une liste : studio, extérieur,
-                plateau.
+                La vidéo et le son sont réencodés ensemble dans le même ffmpeg.
+                L'Opus est produit directement depuis la source, ce qui corrige
+                le son dégradé de l'ancienne chaîne AAC intermédiaire.
               </p>
             </article>
             <article class="card">
               <p class="num">03</p>
               <h3>MediaMTX embarqué</h3>
               <p>
-                Le serveur RTMP est téléchargé dans le dossier de l'app, jamais
-                pris dans le système : la machine peut changer, le
-                comportement reste identique.
+                Le serveur est téléchargé dans le dossier de l'app, jamais pris
+                dans le système : la machine peut changer, le comportement reste
+                identique.
               </p>
             </article>
             <article class="card">
               <p class="num">04</p>
-              <h3>H.265 → H.264</h3>
+              <h3>WebRTC seule sortie</h3>
               <p>
-                Une bascule suffit pour que le flux passe par ffmpeg. Le H.264
-                republié est accepté par n'importe quelle version d'OBS.
+                HLS et la sortie RTMP ont été retirés : une page WHEP à ouvrir
+                dans le navigateur, avec les médias en UDP pour réduire la
+                latence au minimum.
               </p>
             </article>
             <article class="card">
@@ -232,15 +221,16 @@
               <p>
                 « Serveur lancé » ne veut pas dire « caméra connectée » : l'app
                 interroge l'API locale et distingue les deux, avec le débit
-                reçu et le nombre de lecteurs.
+                reçu, les codecs et le nombre de lecteurs.
               </p>
             </article>
             <article class="card">
               <p class="num">06</p>
               <h3>Diagnostics lisibles</h3>
               <p>
-                rfkill, droits Bluetooth, port occupé, ffmpeg absent : chaque
-                panne arrive avec sa cause et la commande qui la règle.
+                Port occupé, ffmpeg absent, transcodage plus lent que le temps
+                réel : chaque panne arrive avec sa cause dans l'onglet
+                Journaux.
               </p>
             </article>
           </div>
@@ -261,11 +251,11 @@
               <li>
                 <strong>Timestamps à l'horloge murale.</strong> Les flux caméra
                 et relais arrivent avec des DTS répétés : ffmpeg les réécrit à
-                la réception, audio et vidéo restent calés, OBS ne fige plus.
+                la réception, audio et vidéo restent calés.
               </li>
               <li>
-                <strong>Keyframe toutes les secondes.</strong> OBS accroche
-                l'image tout de suite et peut couper proprement.
+                <strong>Keyframe toutes les secondes.</strong> Un lecteur qui
+                rejoint accroche l'image tout de suite et peut couper proprement.
               </li>
               <li>
                 <strong>Zéro frame B, zéro lookahead.</strong> Le profil x264
@@ -278,21 +268,22 @@
                 vers MediaMTX dès qu'elle est encodée.
               </li>
               <li>
-                <strong>Côté OBS : tampon réseau à 0 Mo.</strong> Propriétés de
-                la source média → « Tampon réseau » : c'est le dernier gros
-                gisement de latence.
+                <strong>Opus à 160 kb/s, 48 kHz.</strong> L'audio est réencodé
+                directement depuis la source et transporté tel quel par WebRTC,
+                sans étape AAC intermédiaire.
               </li>
             </ul>
           </div>
           <pre class="code"><code>ffmpeg -flags low_delay -use_wallclock_as_timestamps 1 \
-  -fflags +genpts -r 30 -rtsp_transport tcp \
+  -fflags +genpts -rtsp_transport tcp \
   -i rtsp://127.0.0.1:8554/live/dji \
-  -c:v libx264 -preset veryfast -tune zerolatency \
+  -c:v libx264 -preset ultrafast -tune zerolatency \
   -g 30 -keyint_min 30 -bf 0 -fps_mode cfr \
   -b:v 6M -maxrate 6M -bufsize 6M \
-  -c:a aac -b:a 128k -af aresample=async=1 \
+  -c:a libopus -b:a 160k -ar 48000 -ac 2 \
+  -application audio -frame_duration 20 \
   -flush_packets 1 -f flv \
-  rtmp://127.0.0.1:1935/live/dji-h264</code></pre>
+  rtmp://127.0.0.1:1935/live/dji-webrtc</code></pre>
         </div>
       </section>
 
@@ -311,21 +302,20 @@
 
           <div class="steps">
             <article class="step">
-              <h3>1 · Débloquer la radio</h3>
+              <h3>1 · Installer ffmpeg</h3>
               <p>
-                Si le Bluetooth est coupé par le noyau, l'app le détecte et
-                propose de le lever. En cas de refus de permission, une seule
-                commande suffit :
+                L'encodage H.264 + Opus passe par ffmpeg. S'il est absent, l'app
+                le signale dans les réglages et les journaux.
               </p>
-              <code>sudo rfkill unblock bluetooth</code>
+              <code>sudo apt install ffmpeg</code>
             </article>
             <article class="step">
               <h3>2 · Installer le paquet</h3>
               <p>
-                Le .deb contient l'application seule (3,8 Mo). Les dépendances
-                GTK et WebKitGTK sont résolues par apt.
+                Le .deb contient l'application seule. Les dépendances GTK et
+                WebKitGTK sont résolues par apt.
               </p>
-              <code>sudo apt install ./dji-caster_0.1.1_amd64.deb</code>
+              <code>sudo apt install ./dji-caster_0.2.0_amd64.deb</code>
               <p class="hero-note">
                 macOS : dézippez l'archive universelle et glissez
                 <span class="mono">dji-caster.app</span> dans Applications.
@@ -333,19 +323,19 @@
               </p>
             </article>
             <article class="step">
-              <h3>3 · Lancer et scanner</h3>
+              <h3>3 · Lancer et connecter la source</h3>
               <p>
-                Ouvrez « DJI Caster » depuis le menu, puis le bouton
-                <span class="mono">Installer les outils</span> dans les réglages
-                récupère MediaMTX et compile djictl.
+                Ouvrez « DJI Caster », installez MediaMTX depuis les réglages,
+                puis saisissez l'URL d'entrée affichée dans DJI Relay (ou sur la
+                caméra). Ouvrez l'URL WebRTC pour voir le direct.
               </p>
               <code>dji-caster</code>
             </article>
           </div>
 
           <p class="hero-note">
-            Prérequis : Ubuntu 22.04+ / Debian 12+, un adaptateur Bluetooth, un
-            réseau 2,4 GHz pour la caméra, ffmpeg pour la conversion H.264.
+            Prérequis : Ubuntu 22.04+ / Debian 12+, ffmpeg, et une source qui
+            pousse en RTMP (caméra DJI ou relais Android).
           </p>
         </div>
       </section>
@@ -357,15 +347,15 @@
               <p class="eyebrow eyebrow--dark">Distribution</p>
               <h2>Emportez DJI Caster sur le poste de régie</h2>
               <p>
-                Un paquet Debian autonome : scan Bluetooth, profils Wi-Fi,
-                serveur RTMP et bascule H.264. Aucun compte, aucun serveur
-                distant, aucun flux qui sort du réseau local. Un relais Android
-                de test publie la caméra du téléphone sur le même chemin
-                qu'une DJI, pour essayer le logiciel sans matériel.
+                Un paquet Debian autonome : entrée RTMP, encodage H.264 + Opus
+                et page WebRTC. Aucun compte, aucun serveur distant, aucun flux
+                qui sort du réseau local. Un relais Android de test publie la
+                caméra du téléphone sur le même chemin qu'une DJI, pour essayer
+                le logiciel sans matériel.
               </p>
             </div>
             <div class="download-actions">
-              <a class="btn btn--primary" href="./downloads/dji-caster_0.1.1_amd64.deb" download>
+              <a class="btn btn--primary" href="./downloads/dji-caster_0.2.0_amd64.deb" download>
                 Télécharger le .deb
               </a>
               <a class="btn btn--ghost" href="./downloads/dji-caster-macos-universal.zip" download>

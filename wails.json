@@ -5,8 +5,8 @@
   "info": {
     "companyName": "DJI Caster",
     "productName": "DJI Caster",
-    "productVersion": "0.1.1",
-    "comments": "Flux RTMP des caméras DJI vers OBS, en local."
+    "productVersion": "0.2.0",
+    "comments": "Flux RTMP des caméras DJI vers WebRTC, en local."
   },
   "frontend:install": "npm install",
   "frontend:build": "npm run build",

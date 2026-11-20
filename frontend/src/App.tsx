@@ -1,19 +1,16 @@
 import { useState } from "react"
-import { Bluetooth, Loader2, Radio, Terminal } from "lucide-react"
-import { DevicesPanel } from "~/components/devices-panel"
+import { Loader2, Radio, Terminal } from "lucide-react"
 import { LogsPanel } from "~/components/logs-panel"
-import { SessionBanner } from "~/components/session-banner"
 import { SettingsDialog } from "~/components/settings-dialog"
 import { StreamPanel } from "~/components/stream-panel"
 import { BrandMark, TopBar } from "~/components/top-bar"
 import { Button } from "~/components/ui/button"
 import { Skeleton } from "~/components/ui/skeleton"
 import { useBackendEvents, useLogs, useSnapshot } from "~/hooks/use-app"
-import { api, errorMessage } from "~/lib/api"
+import { errorMessage } from "~/lib/api"
 import { cn } from "~/lib/utils"
 
 const TABS = [
-  { id: "devices", label: "Appareils", icon: Bluetooth },
   { id: "stream", label: "Diffusion", icon: Radio },
   { id: "logs", label: "Journaux", icon: Terminal },
 ] as const
@@ -24,7 +21,7 @@ export default function App() {
   const snapshotQuery = useSnapshot()
   const logsQuery = useLogs()
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [tab, setTab] = useState<TabId>("devices")
+  const [tab, setTab] = useState<TabId>("stream")
 
   useBackendEvents()
 
@@ -72,10 +69,7 @@ export default function App() {
       <TopBar snapshot={snapshot} onOpenSettings={() => setSettingsOpen(true)} />
 
       <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-5">
-        <SessionBanner session={snapshot.session} onReset={() => void api.resetSession()} />
-
         <div className="mt-3">
-          {tab === "devices" && <DevicesPanel snapshot={snapshot} />}
           {tab === "stream" && <StreamPanel snapshot={snapshot} />}
           {tab === "logs" && <LogsPanel logs={logsQuery.data ?? []} />}
         </div>

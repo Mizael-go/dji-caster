@@ -25,11 +25,9 @@ Le tag `webkit2_41` est obligatoire sur les distributions récentes
 ```
 main.go              options.App (fenêtre 420×860), //go:embed all:frontend/dist
 app.go               *App = seul objet bindé ; toutes les vues JSON y sont
-internal/config      settings.json (0600, contient le PSK)
-internal/ble         client BlueZ via D-Bus
-internal/djictl      exécution du CLI djictl
-internal/media       MediaMTX (serveur + config générée) et ffmpeg
-internal/bins        téléchargement MediaMTX / compilation djictl
+internal/config      settings.json (0600 : ports, chemins des binaires)
+internal/media       MediaMTX (serveur + config générée) et ffmpeg H.264+Opus
+internal/bins        téléchargement MediaMTX
 frontend/src         React 19 + TS + Tailwind v4 + shadcn
 ```
 
@@ -38,14 +36,13 @@ frontend/src         React 19 + TS + Tailwind v4 + shadcn
 - **Pas d'axios, pas de fetch** : tout passe par les bindings générés
   (`frontend/wailsjs/go/main/App`) enveloppés dans `src/lib/api.ts`.
 - Une méthode Go exportée sur `*App` devient un appel RPC : la garder
-  synchrone et courte. Les opérations longues (djictl, installation) tournent
-  dans une goroutine et se lisent via `Snapshot()` / les logs.
+  synchrone et courte. Les opérations longues (téléchargement de MediaMTX)
+  tournent dans une goroutine et se lisent via `Snapshot()` / les logs.
 - Le backend pousse `EventsEmit(ctx, "state", "change")` (throttlé 200 ms) ; le
   frontend écoute avec `EventsOn("state", …)` et invalide react-query.
 - Les types renvoyés au frontend vivent dans `app.go` (avec tags JSON) et sont
   dupliqués à la main dans `src/lib/types.ts` — garder les deux alignés.
-- `OnShutdown` doit arrêter BlueZ, djictl, ffmpeg et MediaMTX (pas de processus
-  orphelin).
+- `OnShutdown` doit arrêter ffmpeg et MediaMTX (pas de processus orphelin).
 - Les fichiers générés (`frontend/wailsjs`, `frontend/dist`) ne s'éditent pas.
 - `tsconfig.json` n'inclut que `src` (sinon tsc type-check les .js générés).
 
